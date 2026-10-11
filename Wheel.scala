@@ -23,6 +23,8 @@ class Wheel(val c: Int) extends Piece{
   /** Set the position of the centre of this to (x,y). */
   def setPosition(x: Double, y: Double) = 
     position = (x,y)
+
+  def report = s"Wheel, circumference $c, centre at $position"
     
 }
 

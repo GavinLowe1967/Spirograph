@@ -6,6 +6,8 @@ trait Piece{
 
   /** Set the position of this to (x,y). */
   def setPosition(x: Double, y: Double): Unit
+
+  def report: String 
 }
 
 // ============================================================

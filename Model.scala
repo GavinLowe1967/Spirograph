@@ -29,10 +29,11 @@ class Model{
   }
 
 
-  /** Move the current piece, if any, to (x,y).  Return true if successful. */
-  def moveCurrentPiece(x: Double, y: Double): Boolean  = synchronized{
-    if(currentPiece != null){ currentPiece.setPosition(x,y); true } 
-    else false
+  /** Move the current piece, if any, to (x,y).  Return the piece if
+    * successful. */
+  def moveCurrentPiece(x: Double, y: Double): Piece  = synchronized{
+    if(currentPiece != null){ currentPiece.setPosition(x,y); currentPiece } 
+    else null
   }
 
   /** Drop the current piece, if any, at (x,y).  Return true if successful. */

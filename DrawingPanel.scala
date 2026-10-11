@@ -6,7 +6,7 @@ import java.awt.{Color,Font,Graphics2D, Point}
 import DrawingPanel._
 
 /** The main panel for drawing. */
-class DrawingPanel(model: Model) extends Panel{
+class DrawingPanel(model: Model, controller: Controller) extends Panel{
 
   // ========= Coordinate conversion
 
@@ -57,15 +57,13 @@ class DrawingPanel(model: Model) extends Panel{
 
   reactions += {
     case e: MousePressed => // Select piece
-      val (x,y) = getCoords(e); model.selectPieceAt(x,y)
+      val (x,y) = getCoords(e); controller.selectPieceAt(x,y)
 
     case e: MouseDragged => // Move piece
-      val (x,y) = getCoords(e)
-      if(model.moveCurrentPiece(x,y)) repaint()
+      val (x,y) = getCoords(e); controller.moveCurrentPiece(x,y)
 
     case e: MouseReleased => // Drop piece
-      val (x,y) = getCoords(e)
-      if(model.dropCurrentPiece(x,y)) repaint()
+      val (x,y) = getCoords(e); controller.dropPieceAt(x,y)
   }
 }
 
