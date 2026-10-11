@@ -20,7 +20,7 @@ class Wheel(val c: Int) extends Piece{
     dx*dx+dy*dy <= radius*radius
   }
 
-  /** Set the position of this to (x,y). */
+  /** Set the position of the centre of this to (x,y). */
   def setPosition(x: Double, y: Double) = 
     position = (x,y)
     

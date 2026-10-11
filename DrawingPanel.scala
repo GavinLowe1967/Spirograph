@@ -10,14 +10,11 @@ class DrawingPanel(model: Model) extends Panel{
 
   // ========= Coordinate conversion
 
-  /* Note: model uses cartesian coordinates (reals); here we use screen
+  /* Note: model uses cartesian coordinates (Doubles); here we use screen
    * coordinates (Ints, with y increasing down the page. */ 
 
-  /* The origin of this panel in grid units. */
-  // private var xOrigin = 0.0; private var yOrigin = 0.0
-
   /** Scala factor: the number of screen units per logical grid unit. */
-  private var scaleF = 5.0
+  private var scaleF = 10.0
 
   /* Convert logical coordinates to screen coordinates. */
   def gridToScreenX(x: Double) = (scaleF*x).toInt
@@ -34,7 +31,7 @@ class DrawingPanel(model: Model) extends Panel{
 
   /** Model coordinates for `e`. */
   def getCoords(e: MouseEvent): (Double, Double) = {
-    val p = e.point; /* println((p.x, p.y));*/ getCoords(p.x, p.y)
+    val p = e.point; getCoords(p.x, p.y)
   }
 
   // ========== Painting
@@ -56,32 +53,23 @@ class DrawingPanel(model: Model) extends Panel{
 
   // ===== Reactions
 
-  // Current Piece can be set by clicking on piece, or from selector.  Current
-  // piece can be moved by dragging, and placed by dropping.
-
   listenTo(mouse.clicks, mouse.moves)
 
-  /** The current selected piece. */
-  private var currentPiece: Piece = null
-
   reactions += {
-    case e: MousePressed => 
+    case e: MousePressed => // Select piece
+      val (x,y) = getCoords(e); model.selectPieceAt(x,y)
+
+    case e: MouseDragged => // Move piece
       val (x,y) = getCoords(e)
-      currentPiece = model.pieceAt(x,y)
-      println(currentPiece)
+      if(model.moveCurrentPiece(x,y)) repaint()
 
-    case e: MouseDragged =>
-      if(currentPiece != null){
-        val (x,y) = getCoords(e); currentPiece.setPosition(x,y); repaint()
-      }
-
-    case e: MouseReleased => 
-      if(currentPiece != null){
-        val (x,y) = getCoords(e); currentPiece.setPosition(x,y);
-        currentPiece = null; repaint()
-      }
+    case e: MouseReleased => // Drop piece
+      val (x,y) = getCoords(e)
+      if(model.dropCurrentPiece(x,y)) repaint()
   }
 }
+
+// =======================================================
 
 object DrawingPanel{
   val WheelColour = Color.blue
