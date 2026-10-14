@@ -4,6 +4,8 @@ CP = .:scala-swing_2.13-3.0.0.jar
 
 all: $(DIR)/Spirograph.class
 
+$(DIR)/Piece.class: $(DIR)/Vector.class
+
 $(DIR)/Wheel.class: $(DIR)/Piece.class
 
 $(DIR)/Model.class:  $(DIR)/Wheel.class

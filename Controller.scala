@@ -18,27 +18,32 @@ class Controller(model: Model){
 
   /* ----- Public operations, called by the view. ----- */
 
-  /** Move the current piece to (x,y). */
-  def moveCurrentPiece(x: Double, y: Double) = channel!MoveCurrentPiece(x,y)
-  /** Select the piece at (x,y). */
-  def selectPieceAt(x: Double, y: Double) = channel!SelectPieceAt(x,y)
-  /** Drop the piece at (x,y). */
-  def dropPieceAt(x: Double, y: Double) = channel!DropPieceAt(x,y)
+  /** Move the current piece to `v`. */
+  def moveCurrentPiece(v: Vector) = channel!MoveCurrentPiece(v)
+  /** Select the piece at `v`. */
+  def selectPieceAt(v: Vector) = channel!SelectPieceAt(v)
+  /** Drop the piece at `v`. */
+  def dropPieceAt(v: Vector) = channel!DropPieceAt(v)
+  /** Roll the current piece. */
+  def roll() = channel!Roll
 
   /** Controller for the main loop. */
   private def mainLoop = {
     var done = false
     while(!done){
       channel?() match{
-        case MoveCurrentPiece(x,y) => 
-          val p = model.moveCurrentPiece(x,y)
-          if(p !=  null) app.movePiece(p)
+        case MoveCurrentPiece(v) => 
+          val p = model.moveCurrentPiece(v)
+          if(p != null) app.movePiece(p)
 
-        case SelectPieceAt(x,y) => 
-          if(model.selectPieceAt(x,y)) app.showSelectionPanel()
+        case SelectPieceAt(v) => 
+          val p = model.selectPieceAt(v)
+          if(p != null) app.movePiece(p)
 
-        case DropPieceAt(x,y) => 
-          if(model.dropCurrentPiece(x,y)) redisplay()
+        case DropPieceAt(v) => 
+          if(model.dropCurrentPiece(v)) redisplay()
+
+        case Roll => println("Rolling!  Rolling!  Rolling!")
       }
     }
   }
@@ -52,12 +57,14 @@ class Controller(model: Model){
 object Controller{
   /** Events sent to the mainLoop thread. */
   trait Event
-  /** Event to move the current piece to (x,y). */ 
-  case class MoveCurrentPiece(x: Double, y: Double) extends Event
-  /** Event to select the piece at (x,y), if any. */
-  case class SelectPieceAt(x: Double, y: Double) extends Event
-  /** Event to drop the current piece at (x,y). */
-  case class DropPieceAt(x: Double, y: Double) extends Event
+  /** Event to move the current piece to v. */ 
+  case class MoveCurrentPiece(v: Vector) extends Event
+  /** Event to select the piece at v, if any. */
+  case class SelectPieceAt(v: Vector) extends Event
+  /** Event to drop the current piece at v. */
+  case class DropPieceAt(v: Vector) extends Event
+  /** Event to roll the current piece. */
+  case object Roll extends Event
 }
 
 // =======================================================

@@ -2,7 +2,7 @@ package spirograph
 
 import scala.swing._
 import swing.event._
-import java.awt.{Color,Font,Graphics2D, Point}
+import java.awt.{Color,Font,Graphics2D, Point, geom}
 import DrawingPanel._
 
 /** The main panel for drawing. */
@@ -12,9 +12,6 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
 
   /* Note: model uses cartesian coordinates (Doubles); here we use screen
    * coordinates (Ints, with y increasing down the page. */ 
-
-  /** Scala factor: the number of screen units per logical grid unit. */
-  private var scaleF = 10.0
 
   /* Convert logical coordinates to screen coordinates. */
   def gridToScreenX(x: Double) = (scaleF*x).toInt
@@ -26,17 +23,19 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
   preferredSize = new Dimension(width, height)
 
   /** The model coordinates corresponding to screen coordinates `(x,y)`. */
-  def getCoords(x: Int, y: Int): (Double, Double) = 
-    (x/scaleF, model.height-y/scaleF)
+  def getCoords(x: Int, y: Int) = Vector(x/scaleF, model.height-y/scaleF)
 
   /** Model coordinates for `e`. */
-  def getCoords(e: MouseEvent): (Double, Double) = {
-    val p = e.point; getCoords(p.x, p.y)
-  }
+  def getCoords(e: MouseEvent): Vector = { val p = e.point; getCoords(p.x, p.y) }
 
   // ========== Painting
 
   border = Swing.EtchedBorder
+
+  // val transformArray = Array(
+  //   scaleF, 0.0, 0.0,   0.0, -scaleF, -scaleF*model.height,   0.0, 0.0, 1.0
+  // )
+  // private val transform = new java.awt.geom.AffineTransform(transformArray)
 
   /** Paint this panel. */
   override def paintComponent(g: Graphics2D) = {
@@ -44,11 +43,19 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
 
     for(piece <- model.getPieces) piece match{
       case w: Wheel => 
-        val (x,y) = w.position; val r = w.radius; val size = lengthToScreen(2*r)
+        val Vector(x,y) = w.position; val r = w.radius; 
+        val size = lengthToScreen(2*r)
         g.setColor(WheelColour)
+        //g.setTransform(transform)
+        // Circumference
         g.drawOval(gridToScreenX(x-r), gridToScreenY(y+r), size, size)
+        // g.drawOval(x-r, y+r, 2*r, 2*r)
+        // Reference radius
+        val theta = w.orientation
+        g.drawLine(gridToScreenX(x), gridToScreenY(y), 
+          gridToScreenX(x+r*Math.cos(theta)), gridToScreenY(y+r*Math.sin(theta)))
+        // g.drawLine(x, y, x+r*Math.cos(theta), y+r*Math.sin(theta))
     }
-
   }
 
   // ===== Reactions
@@ -57,18 +64,21 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
 
   reactions += {
     case e: MousePressed => // Select piece
-      val (x,y) = getCoords(e); controller.selectPieceAt(x,y)
+      val v = getCoords(e); controller.selectPieceAt(v)
 
     case e: MouseDragged => // Move piece
-      val (x,y) = getCoords(e); controller.moveCurrentPiece(x,y)
+      val v = getCoords(e); controller.moveCurrentPiece(v)
 
     case e: MouseReleased => // Drop piece
-      val (x,y) = getCoords(e); controller.dropPieceAt(x,y)
+      val v = getCoords(e); controller.dropPieceAt(v)
   }
 }
 
 // =======================================================
 
 object DrawingPanel{
+  /** Scale factor: the number of screen units per logical grid unit. */
+  private var scaleF = 10.0
+
   val WheelColour = Color.blue
 }

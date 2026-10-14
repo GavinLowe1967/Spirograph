@@ -23,8 +23,9 @@ class SpirographMainFrame(model: Model, controller: Controller)
   /** Panel for creating new wheel. */
   private val newWheelPanel = new FlowPanel{ 
     object sizeField extends TextField{ columns = 5 }
-    contents ++= List(new Label("Size:"), sizeField, Button("Done"){doDone()})
-
+    contents ++= List(
+      new Label("Size:"), sizeField, Swing.HStrut(10), Button("Done"){doDone()}
+    )
     // Following triggers twice when "enter" is pressed! This is a known bug.
     listenTo(sizeField)
     reactions += { case EditDone(`sizeField`) => doDone() }
@@ -36,12 +37,13 @@ class SpirographMainFrame(model: Model, controller: Controller)
     private def doDone() = { 
       val currentTime = System.currentTimeMillis()
       // Catch the double-trigger bug
-      if(currentTime-lastTime > 100){
+      if(currentTime-lastTime > 200){
         val sizeText = sizeField.text
         if(sizeText.nonEmpty && sizeText.forall(_.isDigit)){
           lastTime = currentTime; val wheelSize = sizeText.toInt
           if(wheelSize > 0){
             model.makeNewWheel(wheelSize); drawingPanel.repaint()
+// TODO: move this to controller
           }
           showMainMenu() // visible = false; buttonPanel.visible = true
         }
@@ -53,10 +55,15 @@ class SpirographMainFrame(model: Model, controller: Controller)
   /** Panel displaying information about the currently selected piece. */
   private class SelectionPanel extends FlowPanel{
     private val label = new Label(""); 
-    private val button =  Button("Done"){ showMainMenu() }
-    contents ++= List(label, Swing.HStrut(10), button)
-    /** Update label based on `p`. */
-    def update(p: Piece) = { label.text = p.report }
+    private val rollButton = Button("Roll"){ controller.roll() }
+    rollButton.visible = false
+    private val doneButton =  Button("Done"){ showMainMenu() }
+    contents ++= 
+      List(label, Swing.HStrut(15), rollButton, doneButton)
+    /** Update this panel based on `p`. */
+    def update(p: Piece) = { 
+      label.text = p.report; rollButton.visible = p.isCoupled
+    }
   }
 
   private val selectionPanel = new SelectionPanel
@@ -76,7 +83,7 @@ class SpirographMainFrame(model: Model, controller: Controller)
   }
 
   /** Show the selection panel. */
-  def showSelectionPanel() = { 
+  private def showSelectionPanel() = { 
     newWheelPanel.visible = false; buttonPanel.visible = false
     selectionPanel.visible = true
   }
@@ -93,7 +100,9 @@ class SpirographMainFrame(model: Model, controller: Controller)
 
   def redisplay() = repaint()
 
+  /** React to piece `p` being moved.  Give information about it in the
+    * selection panel, and redraw main panel. */
   def movePiece(p: Piece) = { 
-    selectionPanel.update(p); drawingPanel.repaint() 
+    showSelectionPanel(); selectionPanel.update(p); drawingPanel.repaint() 
   }
 }

@@ -5,7 +5,7 @@ trait FrameT{
   def redisplay(): Unit
 
   /** Show the selection panel. */
-  def showSelectionPanel(): Unit
+  //def showSelectionPanel(): Unit
 
   def movePiece(p: Piece): Unit
 }
