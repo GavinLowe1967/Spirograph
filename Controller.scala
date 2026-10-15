@@ -41,9 +41,12 @@ class Controller(model: Model){
           if(p != null) app.movePiece(p)
 
         case DropPieceAt(v) => 
-          if(model.dropCurrentPiece(v)) redisplay()
+          model.dropCurrentPiece(v); redisplay()
 
-        case Roll => println("Rolling!  Rolling!  Rolling!")
+        case Roll => 
+          // println("Rolling!  Rolling!  Rolling!")
+          model.rollCurrentPiece()
+          redisplay()
       }
     }
   }

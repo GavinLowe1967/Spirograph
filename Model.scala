@@ -6,11 +6,13 @@ class Model{
   /** The current pieces. */
   private var pieces = List[Piece]()
 
-  def getPieces = pieces
+  def getPieces = synchronized{ pieces }
 
-  def addPiece(p: Piece) = pieces ::= p
+  def addPiece(p: Piece) = synchronized{ pieces ::= p }
 
-  /** The currently selected piece, if any. */
+  /** The currently selected piece, if any.  A piece becomes the current piece
+    * when it is selected with the mouse.  It stops being the current piece
+    * when the "Done" button is pressed, or another piece is selected. */
   private var currentPiece: Piece = null
 
   /** Move the current piece to (x,y). */
@@ -27,7 +29,8 @@ class Model{
   /** Set the current piece to be the one at (x,y), if any.  Return the piece,
     * or `null` if unsuccessful. */
   def selectPieceAt(v: Vector): Piece = synchronized{
-    require(currentPiece == null); currentPiece = pieceAt(v)
+    // require(currentPiece == null); 
+    currentPiece = pieceAt(v)
     currentPiece 
   }
 
@@ -59,13 +62,34 @@ class Model{
   }
 
   /** Drop the current piece, if any, at (x,y).  Return true if successful. */
-  def dropCurrentPiece(v: Vector): Boolean = synchronized{
+  def dropCurrentPiece(v: Vector) = synchronized{ currentPiece = null }
+
+/*
     if(currentPiece != null){ 
       // The following is normally, but not always, a no-op. 
       setCurrentPos(v); maybeSnap()
       currentPiece = null; true
+// FIXME: it's still the current piece
     }
     else false
+  }
+ */
+
+  // Amount to advance in one step
+  private val delta = 0.5
+
+  def rollCurrentPiece() = synchronized{
+    require(currentPiece.isCoupled)
+    val (other,v) = currentPiece.coupling // coupling to move from
+    //println(s"currentPiece = ${currentPiece.report}")
+    //println(s"other = ${other.report}; $v")
+    // In other, position advancing delta from v and normal at that point
+    val (deltaV,norm) = other.advanceFrom(v, delta)
+    // println(s"deltaV = $deltaV")
+    val newJoin = v+deltaV // new join point
+// TODO: rotate
+    currentPiece.setPositionRelativeTo(newJoin,norm)
+    currentPiece.coupleTo(other, newJoin)
   }
 
   def makeNewWheel(s: Int) = synchronized{

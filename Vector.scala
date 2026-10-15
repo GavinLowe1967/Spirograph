@@ -19,4 +19,13 @@ case class Vector(x: Double, y: Double){
 
   /** Convert this to a pair. */
   def asPair = (x,y)
+
+  /** The angle of this in polar coordinates, in the range (-pi,pi] (I think). */
+  def theta: Double = Math.atan2(y,x)
+}
+
+object Vector{
+  /** The vector corresponding to polar coordinates (r,theta). */
+  def fromPolar(r: Double, theta: Double) = 
+    Vector(r*Math.cos(theta), r*Math.sin(theta))
 }

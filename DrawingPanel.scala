@@ -43,18 +43,14 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
 
     for(piece <- model.getPieces) piece match{
       case w: Wheel => 
-        val Vector(x,y) = w.position; val r = w.radius; 
-        val size = lengthToScreen(2*r)
-        g.setColor(WheelColour)
-        //g.setTransform(transform)
+        val Vector(x,y) = w.getPosition; val r = w.radius; 
+        val size = lengthToScreen(2*r); g.setColor(WheelColour)
         // Circumference
         g.drawOval(gridToScreenX(x-r), gridToScreenY(y+r), size, size)
-        // g.drawOval(x-r, y+r, 2*r, 2*r)
         // Reference radius
         val theta = w.orientation
         g.drawLine(gridToScreenX(x), gridToScreenY(y), 
           gridToScreenX(x+r*Math.cos(theta)), gridToScreenY(y+r*Math.sin(theta)))
-        // g.drawLine(x, y, x+r*Math.cos(theta), y+r*Math.sin(theta))
     }
   }
 
@@ -70,7 +66,7 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
       val v = getCoords(e); controller.moveCurrentPiece(v)
 
     case e: MouseReleased => // Drop piece
-      val v = getCoords(e); controller.dropPieceAt(v)
+      val v = getCoords(e); controller.moveCurrentPiece(v) //.dropPieceAt(v)
   }
 }
 

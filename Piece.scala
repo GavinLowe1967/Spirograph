@@ -3,53 +3,79 @@ package spirograph
 import Piece._
 
 trait Piece{ 
-  /** Does this piece contain the point v? */
-  def contains(v: Vector): Boolean
+  /** The reference point of this piece, typically the centre. */
+  protected var position: Vector 
 
-  def getPosition: Vector
+  /** Get the position of the reference point of this. */
+  def getPosition: Vector = position
 
-  /** Set the position of this to v. */
-  def setPosition(v: Vector): Unit
+  /** Set the reference position of this to v. */
+  def setPosition(v: Vector) = position = v
 
-  /** Move this by `v`, and couple to `other`. */
-  def moveByAndCouple(v: Vector, other: Piece): Unit
+  // ========= Operations in subclasses. =========
 
   /** A description of the state of this. */
   def report: String 
+
+  /** Does this piece contain the point v? */
+  def contains(v: Vector): Boolean
+
+  /** Is `v` (approximately) on the perimeter of this? */
+  def onPerimeter(v: Vector) : Boolean
+
+  /** Move this by `v`, and couple to `other`. */
+  def moveByAndCouple(v: Vector, other: Piece): Unit
 
   /** A vector between the closest points of this and other, and its length.
     * Moving this by the resulting vector will mean that the two pieces just
     * touch.  */
   def vectorTo(other: Piece): (Vector, Double)
 
-  /** The pieces this is coupled to.  Invariant: the relation is symmetric: if
-    * p2 in p1.coupledTo, then p1 in p2.coupledTo. */
-  private var coupledTo = List[Piece]()
+  /** The vector corresponding to moving distance `d` along the perimeter of
+    * this from `v` in an anticlockwise direction, and a unit vector normal to
+    * the perimeter at that point.  Pre: `onPerimeter(v)`. */
+  def advanceFrom(v: Vector, d: Double): (Vector, Vector)
+
+  /** Set the position of this so that the perimeter at `v` is normal to `norm`
+    * (or unit length), with `norm` pointing inwards. */
+  def setPositionRelativeTo(v: Vector, norm: Vector): Unit
+
+  // ========= Coupling =========
+
+  /** The pieces this is coupled to, and the point of contact.  Invariant: the
+    * relation is symmetric: if (p2,v) in p1.coupledTo, then (p1,v) in
+    * p2.coupledTo. */
+  private var coupledTo = List[(Piece,Vector)]()
 
   /** Record that other is coupled to this (if not already recorded). */
-  private def maybeCoupleTo(other: Piece) = 
-    if(!coupledTo.contains(other)) coupledTo ::= other
-    // else println("Already coupled")
+  private def maybeCoupleTo(other: Piece, v: Vector) = 
+    coupledTo = (other,v) :: coupledTo.filter(_._1 != other)
 
-  /** Couple this to other, and vice versa. */
-  protected def coupleTo(other: Piece) = { 
-    maybeCoupleTo(other); other.maybeCoupleTo(this)
+  /** Couple this to other, touching at `v`, and vice versa. */
+  def coupleTo(other: Piece, v: Vector) = { 
+    maybeCoupleTo(other,v); other.maybeCoupleTo(this,v)
   }
 
   /** Record that other is no longer coupled to this. */
   private def uncoupleFrom(other: Piece) = {
-    assert(coupledTo.contains(other))
-    coupledTo = coupledTo.filter(_ != other)
+    assert(coupledTo.map(_._1).contains(other), coupledTo.toString+"\n"+other)
+    coupledTo = coupledTo.filter(_._1 != other)
   }
 
   /** Uncouple this from another piece. */
   def uncouple() = {
-    for(other <- coupledTo) other.uncoupleFrom(this)
+    for((other,_) <- coupledTo) other.uncoupleFrom(this)
     coupledTo = List()
   }
 
   /** Is this coupled to another piece? */
   def isCoupled = coupledTo.nonEmpty
+
+  /** The piece and touching point that this is coupled to. */
+  def coupling: (Piece,Vector) = {
+    assert(coupledTo.length == 1) // FIXME!
+    coupledTo.head
+  }
 
 }
 
