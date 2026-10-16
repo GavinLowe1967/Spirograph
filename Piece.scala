@@ -20,7 +20,7 @@ trait Piece{
   /** Does this piece contain the point v? */
   def contains(v: Vector): Boolean
 
-  /** Is `v` (approximately) on the perimeter of this? */
+  /** Is `v` on the perimeter of this, to within Piece.Tolerance? */
   def onPerimeter(v: Vector) : Boolean
 
   /** Move this by `v`, and couple to `other`. */
@@ -38,7 +38,12 @@ trait Piece{
 
   /** Set the position of this so that the perimeter at `v` is normal to `norm`
     * (or unit length), with `norm` pointing inwards. */
-  def setPositionRelativeTo(v: Vector, norm: Vector): Unit
+  //def setPositionRelativeTo(v: Vector, norm: Vector): Unit
+
+  /** Move and rotate this so that the point `d` units from `v` in a clockwise
+    * direction is normal to `norm` (with `norm` pointing inwards) at
+    * `newJoin`.  Pre: `norm` is of unit length. */
+  def move(v: Vector, d: Double, norm: Vector, newJoin: Vector): Unit
 
   // ========= Coupling =========
 
@@ -81,4 +86,7 @@ trait Piece{
 
 // ============================================================
 
-object Piece{ }
+object Piece{
+  /** Tolerance, to allow for rounding errors. */
+  val Tolerance = 0.0001
+ }

@@ -1,5 +1,7 @@
 package spirograph
 
+import Math.PI
+
 /** Representation of a vector in two-dimensional space. */
 case class Vector(x: Double, y: Double){
   /** This plus `other`. */
@@ -28,4 +30,10 @@ object Vector{
   /** The vector corresponding to polar coordinates (r,theta). */
   def fromPolar(r: Double, theta: Double) = 
     Vector(r*Math.cos(theta), r*Math.sin(theta))
+
+  /** Reduce theta so it is in the range [-PI,PI]. */
+  def normAngle(theta: Double): Double = 
+    if(theta > PI) normAngle(theta-2*PI) 
+    else if(theta < -PI) normAngle(theta+2*PI) 
+    else theta
 }

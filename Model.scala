@@ -64,31 +64,16 @@ class Model{
   /** Drop the current piece, if any, at (x,y).  Return true if successful. */
   def dropCurrentPiece(v: Vector) = synchronized{ currentPiece = null }
 
-/*
-    if(currentPiece != null){ 
-      // The following is normally, but not always, a no-op. 
-      setCurrentPos(v); maybeSnap()
-      currentPiece = null; true
-// FIXME: it's still the current piece
-    }
-    else false
-  }
- */
-
-  // Amount to advance in one step
+  // Amount to advance in one step.
   private val delta = 0.5
 
   def rollCurrentPiece() = synchronized{
     require(currentPiece.isCoupled)
     val (other,v) = currentPiece.coupling // coupling to move from
-    //println(s"currentPiece = ${currentPiece.report}")
-    //println(s"other = ${other.report}; $v")
-    // In other, position advancing delta from v and normal at that point
-    val (deltaV,norm) = other.advanceFrom(v, delta)
-    // println(s"deltaV = $deltaV")
-    val newJoin = v+deltaV // new join point
-// TODO: rotate
-    currentPiece.setPositionRelativeTo(newJoin,norm)
+    // In `other`, the point `delta` advanced from `v`, and a normal vector at
+    // that point.
+    val (newJoin, norm) = other.advanceFrom(v, delta)
+    currentPiece.move(v, delta, norm, newJoin)
     currentPiece.coupleTo(other, newJoin)
   }
 

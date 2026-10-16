@@ -13,10 +13,12 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
   /* Note: model uses cartesian coordinates (Doubles); here we use screen
    * coordinates (Ints, with y increasing down the page. */ 
 
+  private def round(x: Double): Int = (x+0.5).toInt
+
   /* Convert logical coordinates to screen coordinates. */
-  def gridToScreenX(x: Double) = (scaleF*x).toInt
-  def gridToScreenY(y: Double) = (scaleF*(model.height-y)).toInt
-  def lengthToScreen(l: Double) = (scaleF*l).toInt
+  def gridToScreenX(x: Double) = round(scaleF*x)
+  def gridToScreenY(y: Double) = round(scaleF*(model.height-y))
+  def lengthToScreen(l: Double) = round(scaleF*l)
 
   /* Size of this panel. */
   val width = lengthToScreen(100.0); val height = width
