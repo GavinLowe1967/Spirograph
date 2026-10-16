@@ -13,21 +13,24 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
   /* Note: model uses cartesian coordinates (Doubles); here we use screen
    * coordinates (Ints, with y increasing down the page. */ 
 
+  /** Round `x` to the nearest `Int`. */
   private def round(x: Double): Int = (x+0.5).toInt
 
   /* Convert logical coordinates to screen coordinates. */
-  def gridToScreenX(x: Double) = round(scaleF*x)
-  def gridToScreenY(y: Double) = round(scaleF*(model.height-y))
-  def lengthToScreen(l: Double) = round(scaleF*l)
+  private def gridToScreenX(x: Double) = round(scaleF*x)
+  private def gridToScreenY(y: Double) = round(scaleF*(model.height-y))
+  private def lengthToScreen(l: Double) = round(scaleF*l)
+  private def toScreen(v: Vector) = (gridToScreenX(v.x), gridToScreenY(v.y))
 
   /* Size of this panel. */
   val width = lengthToScreen(100.0); val height = width
   preferredSize = new Dimension(width, height)
 
   /** The model coordinates corresponding to screen coordinates `(x,y)`. */
-  def getCoords(x: Int, y: Int) = Vector(x/scaleF, model.height-y/scaleF)
+  private def getCoords(x: Int, y: Int) = Vector(x/scaleF, model.height-y/scaleF)
 
   /** Model coordinates for `e`. */
+  private 
   def getCoords(e: MouseEvent): Vector = { val p = e.point; getCoords(p.x, p.y) }
 
   // ========== Painting
@@ -43,6 +46,7 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
   override def paintComponent(g: Graphics2D) = {
     super.paintComponent(g) 
 
+    // Paint pieces
     for(piece <- model.getPieces) piece match{
       case w: Wheel => 
         val Vector(x,y) = w.getPosition; val r = w.radius; 
@@ -53,6 +57,13 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
         val theta = w.orientation
         g.drawLine(gridToScreenX(x), gridToScreenY(y), 
           gridToScreenX(x+r*Math.cos(theta)), gridToScreenY(y+r*Math.sin(theta)))
+    }
+
+    // Paint lines
+    for((start,colour,end) <- model.getLines){
+      g.setColor(colour)
+      val (x1,y1) = toScreen(start); val (x2,y2) = toScreen(end)
+      g.drawLine(x1, y1, x2, y2)
     }
   }
 

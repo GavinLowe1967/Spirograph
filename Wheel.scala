@@ -1,5 +1,7 @@
 package spirograph
 
+import java.awt.Color
+
 /** A wheel with circumference `c` and centre `position`. */
 class Wheel(val c: Int, protected var position: Vector) extends Piece{
   /** The radius of this. */
@@ -41,10 +43,10 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
     * `v` in an anticlockwise direction, and a unit vector normal to the
     * perimeter at that point.  Pre: `onPerimeter(v)`.  */
   def advanceFrom(v: Vector, d: Double): (Vector,Vector) = {
-    val offset = v-position // v relative to the centre
-    require(onPerimeter(v), s"v = $v, offset = $offset")
-    val theta = offset.theta + d/radius // new angle wrt centre
-    val norm = Vector.fromPolar(1.0, theta) // Normal vector
+    val offset = v-position // `v` relative to the centre.
+    require(onPerimeter(v), s"v = $v, distance = ${offset.length}")
+    val theta = offset.theta + d/radius // New angle wrt centre.
+    val norm = Vector.fromPolar(1.0, theta) // Unit normal vector.
     val v1 = position+norm*radius // Point reached.
     (v1,norm)
   }
@@ -63,12 +65,28 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
     position = newJoin+norm*radius // Move.
   }
 
-  /** Set the position of this so that the perimeter at `newJoin` is normal to `norm`
-    * (of unit length), with `norm` pointing inwards. */
-  // def setPositionRelativeTo(newJoin: Vector, norm: Vector) = {
-  //   require(Math.abs(norm.length-1) < Piece.Tolerance) // check unit vector
-  //   position = newJoin+norm*radius
-  // }
+  // ======================================================= Pens
+
+  /* Details about each pen is stored using polar coordinates.  A value
+   * (r,theta,c) represents a pen at distance r from the centre, at an angle
+   * theta relative to the reference radius. and colour c. */  
+
+  private var pens = List[(Double,Double,Color)]()
+
+  def addPen(v: Vector, c: Color) = {
+    val offset = v-position; val r = offset.length
+    val theta = Vector.normAngle(offset.theta-orientation)
+    pens ::= (r,theta,c)
+  }
+
+  // Test
+  addPen(position+Vector(radius*0.9, 0.0), Color.red)
+
+  def getPens: List[(Vector,Color)] = 
+    pens.map{ case (r,theta,c) => 
+      (position + Vector.fromPolar(r, theta+orientation), c)
+    }
+
 }
 
 

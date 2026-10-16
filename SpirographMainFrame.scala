@@ -56,13 +56,15 @@ class SpirographMainFrame(model: Model, controller: Controller)
   private class SelectionPanel extends FlowPanel{
     private val label = new Label(""); 
     private val rollButton = Button("Roll"){ controller.roll() }
-    rollButton.visible = false
+    private val rollOneButton = Button("Roll one step"){ controller.rollOne() }
+    rollButton.visible = false; rollOneButton.visible = false
     private val doneButton =  Button("Done"){ showMainMenu() }
     contents ++= 
-      List(label, Swing.HStrut(15), rollButton, doneButton)
+      List(label, Swing.HStrut(15), rollButton, rollOneButton, doneButton)
     /** Update this panel based on `p`. */
     def update(p: Piece) = { 
-      label.text = p.report; rollButton.visible = p.isCoupled
+      label.text = p.report; val allowRolls = p.isCoupled
+      rollButton.visible = allowRolls; rollOneButton.visible = allowRolls
     }
   }
 
@@ -98,7 +100,7 @@ class SpirographMainFrame(model: Model, controller: Controller)
 
   /* ========= Public operations ========= */
 
-  def redisplay() = repaint()
+  def redisplay() = { repaint() }
 
   /** React to piece `p` being moved.  Give information about it in the
     * selection panel, and redraw main panel. */

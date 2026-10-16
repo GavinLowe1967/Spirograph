@@ -1,6 +1,7 @@
 package spirograph
 
 import Piece._
+import java.awt.Color
 
 trait Piece{ 
   /** The reference point of this piece, typically the centre. */
@@ -14,6 +15,13 @@ trait Piece{
 
   // ========= Operations in subclasses. =========
 
+  /** Add a pen at position `v` and colour `c`. */
+  def addPen(v: Vector, c: Color): Unit
+
+  /** Get details about pens.  Successive calls with no intervening `addPen`
+    * will return the same order for pens. */
+  def getPens: List[(Vector,Color)]
+
   /** A description of the state of this. */
   def report: String 
 
@@ -22,6 +30,7 @@ trait Piece{
 
   /** Is `v` on the perimeter of this, to within Piece.Tolerance? */
   def onPerimeter(v: Vector) : Boolean
+
 
   /** Move this by `v`, and couple to `other`. */
   def moveByAndCouple(v: Vector, other: Piece): Unit
@@ -36,10 +45,6 @@ trait Piece{
     * the perimeter at that point.  Pre: `onPerimeter(v)`. */
   def advanceFrom(v: Vector, d: Double): (Vector, Vector)
 
-  /** Set the position of this so that the perimeter at `v` is normal to `norm`
-    * (or unit length), with `norm` pointing inwards. */
-  //def setPositionRelativeTo(v: Vector, norm: Vector): Unit
-
   /** Move and rotate this so that the point `d` units from `v` in a clockwise
     * direction is normal to `norm` (with `norm` pointing inwards) at
     * `newJoin`.  Pre: `norm` is of unit length. */
@@ -53,8 +58,10 @@ trait Piece{
   private var coupledTo = List[(Piece,Vector)]()
 
   /** Record that other is coupled to this (if not already recorded). */
-  private def maybeCoupleTo(other: Piece, v: Vector) = 
+  private def maybeCoupleTo(other: Piece, v: Vector) = {
+    assert(onPerimeter(v), v.toString)
     coupledTo = (other,v) :: coupledTo.filter(_._1 != other)
+  }
 
   /** Couple this to other, touching at `v`, and vice versa. */
   def coupleTo(other: Piece, v: Vector) = { 

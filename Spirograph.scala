@@ -7,7 +7,7 @@ object Spirograph{
   def main(args: Array[String]) = {
     val model = new Model; val controller = new Controller(model)
     val frame = new SpirographMainFrame(model, controller)
-    controller.start(frame)
+    model.setFrame(frame); controller.start(frame)
     frame.location = new Point(500,50); frame.pack(); frame.visible = true
   }
 }

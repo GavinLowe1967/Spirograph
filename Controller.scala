@@ -13,7 +13,7 @@ class Controller(model: Model){
   private def redisplay() = Swing.onEDT(app.redisplay())
 
   /** Channel for events to mainLoop thread. */
-  private val channel = new Channel[Event](1)
+  private val channel = new Channel[Event](5)
 // IMPROVE: use a one-place channel? 
 
   /* ----- Public operations, called by the view. ----- */
@@ -26,6 +26,8 @@ class Controller(model: Model){
   def dropPieceAt(v: Vector) = channel!DropPieceAt(v)
   /** Roll the current piece. */
   def roll() = channel!Roll
+  /** Roll the current piece. */
+  def rollOne() = channel!RollOne
 
   /** Controller for the main loop. */
   private def mainLoop = {
@@ -43,10 +45,13 @@ class Controller(model: Model){
         case DropPieceAt(v) => 
           model.dropCurrentPiece(v); redisplay()
 
+        case RollOne =>
+          model.rollCurrentPieceOneStep()
+          redisplay()
+
         case Roll => 
           // println("Rolling!  Rolling!  Rolling!")
-          model.rollCurrentPiece()
-          redisplay()
+          Concurrency.runThread(model.rollCurrentPiece())
       }
     }
   }
@@ -68,6 +73,8 @@ object Controller{
   case class DropPieceAt(v: Vector) extends Event
   /** Event to roll the current piece. */
   case object Roll extends Event
+  /** Event to roll the current piece one step. */
+  case object RollOne extends Event
 }
 
 // =======================================================
