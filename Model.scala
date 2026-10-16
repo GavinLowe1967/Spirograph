@@ -21,7 +21,7 @@ class Model{
   // so another thread holds the synchronized lock.  Hence the above doesn't
   // use "synchronized", but instead a volatile variable.
 
-  def addPiece(p: Piece) = synchronized{ pieces ::= p }
+  private def addPiece(p: Piece) = synchronized{ pieces ::= p }
 
   /** The currently selected piece, if any.  A piece becomes the current piece
     * when it is selected with the mouse.  It stops being the current piece
@@ -91,6 +91,7 @@ class Model{
   }
 // TODO: stop above loop when back to start point, or interrupted.
 
+  /** Roll the current piece for one step. */
   def rollCurrentPieceOneStep() = synchronized{
     require(currentPiece.isCoupled)
     val (other,v) = currentPiece.coupling // coupling to move from
@@ -114,10 +115,10 @@ class Model{
     newJoin
   }
 
-
-  def makeNewWheel(s: Int) = synchronized{
-    val x = s/Math.PI/2; val v = Vector(x+0.5,x+1) // initial position
-    val p = new Wheel(s, v); addPiece(p)
+  /** Make a new wheel of circumference c. */
+  def makeNewWheel(c: Int) = synchronized{
+    val r = c/(2*Math.PI); val v = Vector(r+0.5,r+1) // initial position
+    val p = new Wheel(c, v); addPiece(p)
   }
 
   // ========= Drawn lines =========

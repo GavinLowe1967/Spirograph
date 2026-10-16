@@ -49,12 +49,12 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
     // Paint pieces
     for(piece <- model.getPieces) piece match{
       case w: Wheel => 
-        val Vector(x,y) = w.getPosition; val r = w.radius; 
+        val (Vector(x,y), theta) = w.getState; val r = w.radius
         val size = lengthToScreen(2*r); g.setColor(WheelColour)
         // Circumference
         g.drawOval(gridToScreenX(x-r), gridToScreenY(y+r), size, size)
         // Reference radius
-        val theta = w.orientation
+        //val theta = w.orientation
         g.drawLine(gridToScreenX(x), gridToScreenY(y), 
           gridToScreenX(x+r*Math.cos(theta)), gridToScreenY(y+r*Math.sin(theta)))
     }

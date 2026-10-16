@@ -4,12 +4,19 @@ import java.awt.Color
 
 /** A wheel with circumference `c` and centre `position`. */
 class Wheel(val c: Int, protected var position: Vector) extends Piece{
+  /* Note: the only concurrency that might be present in this class is the view
+   * reading the state of the object, for rendering.  Reads and writes of
+   * those attributes are done using synchronized blocks. */
+
   /** The radius of this. */
   val radius = c / (2*Math.PI)
 
   /** The orientation of a reference radius from the x-axis in a clockwise
     * direction. */
-  var orientation: Double = 0.0
+  private var orientation: Double = 0.0
+
+  /** Atomically get the position and orientation of this. */
+  def getState: (Vector,Double) = synchronized{ (position, orientation) }
 
   private def offset(v: Vector) = v-position
 
@@ -19,14 +26,20 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
   def onPerimeter(v: Vector) = 
     Math.abs(offset(v).length-radius) < Piece.Tolerance
 
+  def checkOnPerimeter(v: Vector) = 
+    assert(onPerimeter(v), 
+      s"$v not on perimeter of $report, radius $radius; "+
+        s"distance ${offset(v).length}")
+
   /** Does this piece contain the point v? */
   def contains(v: Vector): Boolean = offset(v).length <= radius
 
   /** Move this by `v`, and couple to `other`.  Pre: `v` is the vector between
     * the closest points of `this` and `other`. */
   def moveByAndCouple(v: Vector, other: Piece) = {
-    position += v
-    val join = position + v.unit*radius // Join point, where the two touch.
+    synchronized{ position += v }
+    val join = position + v.unit*radius // Join point, where the two touch
+    checkOnPerimeter(join)
     coupleTo(other,join)
   }
 
@@ -37,6 +50,7 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
     case w: Wheel => 
       val v1 = w.position-position; val sep = v1.length-radius-w.radius
       (v1.unit*sep, math.abs(sep))
+// Does this go wrong if v1 is very small?
   }    
 
   /** The point reached by moving distance `d` along the perimeter of this from
@@ -61,8 +75,10 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
     val (v1, norm1) = advanceFrom(v, -d)
     // Rotate to make norm and norm1 antiparallel.
     val dTheta = Math.PI+norm.theta-norm1.theta // Amount to rotate.
-    orientation = Vector.normAngle(orientation+dTheta)
-    position = newJoin+norm*radius // Move.
+    synchronized{  // Update atomically
+      orientation = Vector.normAngle(orientation+dTheta)
+      position = newJoin+norm*radius // Move.
+    }
   }
 
   // ======================================================= Pens

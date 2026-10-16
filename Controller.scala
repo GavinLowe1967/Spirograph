@@ -13,11 +13,13 @@ class Controller(model: Model){
   private def redisplay() = Swing.onEDT(app.redisplay())
 
   /** Channel for events to mainLoop thread. */
-  private val channel = new Channel[Event](5)
+  private val channel = new Channel[Event](1)
 // IMPROVE: use a one-place channel? 
 
   /* ----- Public operations, called by the view. ----- */
 
+  /** Make a new wheel of circumference c. */
+  def makeNewWheel(c: Int) = channel!MakeNewWheel(c)
   /** Move the current piece to `v`. */
   def moveCurrentPiece(v: Vector) = channel!MoveCurrentPiece(v)
   /** Select the piece at `v`. */
@@ -34,6 +36,9 @@ class Controller(model: Model){
     var done = false
     while(!done){
       channel?() match{
+        case MakeNewWheel(c) =>
+          model.makeNewWheel(c); redisplay()
+
         case MoveCurrentPiece(v) => 
           val p = model.moveCurrentPiece(v)
           if(p != null) app.movePiece(p)
@@ -65,6 +70,8 @@ class Controller(model: Model){
 object Controller{
   /** Events sent to the mainLoop thread. */
   trait Event
+  /** Event to make new wheel of circumference c. */
+  case class MakeNewWheel(c: Int) extends Event
   /** Event to move the current piece to v. */ 
   case class MoveCurrentPiece(v: Vector) extends Event
   /** Event to select the piece at v, if any. */

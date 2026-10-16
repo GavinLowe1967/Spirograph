@@ -41,11 +41,9 @@ class SpirographMainFrame(model: Model, controller: Controller)
         val sizeText = sizeField.text
         if(sizeText.nonEmpty && sizeText.forall(_.isDigit)){
           lastTime = currentTime; val wheelSize = sizeText.toInt
-          if(wheelSize > 0){
-            model.makeNewWheel(wheelSize); drawingPanel.repaint()
-// TODO: move this to controller
-          }
-          showMainMenu() // visible = false; buttonPanel.visible = true
+          if(wheelSize > 0) controller.makeNewWheel(wheelSize)
+//            model.makeNewWheel(wheelSize); drawingPanel.repaint()
+          showMainMenu() 
         }
       }
       // IMPROVE: give warning in "else" cases. 

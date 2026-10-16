@@ -8,7 +8,7 @@ trait Piece{
   protected var position: Vector 
 
   /** Get the position of the reference point of this. */
-  def getPosition: Vector = position
+  //def getPosition: Vector = position
 
   /** Set the reference position of this to v. */
   def setPosition(v: Vector) = position = v
@@ -31,6 +31,7 @@ trait Piece{
   /** Is `v` on the perimeter of this, to within Piece.Tolerance? */
   def onPerimeter(v: Vector) : Boolean
 
+  def checkOnPerimeter(v: Vector): Unit
 
   /** Move this by `v`, and couple to `other`. */
   def moveByAndCouple(v: Vector, other: Piece): Unit
@@ -59,7 +60,8 @@ trait Piece{
 
   /** Record that other is coupled to this (if not already recorded). */
   private def maybeCoupleTo(other: Piece, v: Vector) = {
-    assert(onPerimeter(v), v.toString)
+    //assert(onPerimeter(v), report+"\n"+v.toString)
+    checkOnPerimeter(v)
     coupledTo = (other,v) :: coupledTo.filter(_._1 != other)
   }
 

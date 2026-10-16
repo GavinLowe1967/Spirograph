@@ -17,7 +17,10 @@ case class Vector(x: Double, y: Double){
   def length = Math.sqrt(x*x+y*y)
 
   /** A unit vector in the direction of this. */
-  def unit = this*(1.0/length)
+  def unit = {
+    if(length < 0.001) println(s"unit on small vector: $this")
+    this*(1.0/length)
+  }
 
   /** Convert this to a pair. */
   def asPair = (x,y)
