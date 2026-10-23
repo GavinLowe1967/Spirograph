@@ -13,8 +13,7 @@ class Controller(model: Model){
   private def redisplay() = Swing.onEDT(app.redisplay())
 
   /** Channel for events to mainLoop thread. */
-  private val channel = new Channel[Event](1)
-// IMPROVE: use a one-place channel? 
+  private val channel = new UnboundedBuffer[Event] 
 
   /* ----- Public operations, called by the view. ----- */
 
@@ -30,6 +29,12 @@ class Controller(model: Model){
   def roll() = channel!Roll
   /** Roll the current piece. */
   def rollOne() = channel!RollOne
+  /** Cancel a roll. */
+  def cancelRoll() = channel!CancelRoll
+  /** Add pen. */
+  def addPen(v: Vector) = channel!AddPen(v) 
+
+  @volatile private var rolling = false 
 
   /** Controller for the main loop. */
   private def mainLoop = {
@@ -39,24 +44,36 @@ class Controller(model: Model){
         case MakeNewWheel(c) =>
           model.makeNewWheel(c); redisplay()
 
-        case MoveCurrentPiece(v) => 
+        case MoveCurrentPiece(v) if !rolling => 
           val p = model.moveCurrentPiece(v)
           if(p != null) app.movePiece(p)
 
-        case SelectPieceAt(v) => 
+        case SelectPieceAt(v) if !rolling => 
           val p = model.selectPieceAt(v)
           if(p != null) app.movePiece(p)
 
-        case DropPieceAt(v) => 
+        case DropPieceAt(v) if !rolling => 
           model.dropCurrentPiece(v); redisplay()
 
-        case RollOne =>
+        case RollOne if !rolling =>
           model.rollCurrentPieceOneStep()
           redisplay()
 
-        case Roll => 
-          // println("Rolling!  Rolling!  Rolling!")
-          Concurrency.runThread(model.rollCurrentPiece())
+        case Roll if !rolling => 
+          rolling = true
+          Concurrency.runThread{ 
+            val p = model.rollCurrentPiece()
+            app.movePiece(p); rolling = false
+          }
+
+        case CancelRoll if rolling =>
+          model.cancelRoll()
+          // Note: this leads to the execution of the last line of the thread
+          // for the `Roll` event, so resets.
+
+        case AddPen(v) if !rolling => model.addPen(v)
+
+        case e => println(s"Event ignored: $e")
       }
     }
   }
@@ -82,6 +99,10 @@ object Controller{
   case object Roll extends Event
   /** Event to roll the current piece one step. */
   case object RollOne extends Event
+  /** Even to cancel a roll. */
+  case object CancelRoll extends Event
+  /** Event to add a pen. */
+  case class AddPen(v: Vector) extends Event
 }
 
 // =======================================================
@@ -122,5 +143,19 @@ class Channel[A: scala.reflect.ClassTag](capacity: Int){
     val result = data(start); start = (start+1)%capacity; length -= 1
     notifyAll(); result
   }
+}
 
+/** An unbounded buffer. */
+class UnboundedBuffer[A]{
+  /** The buffered values. */
+  private val data = new scala.collection.mutable.Queue[A]
+
+  /** Send x on the channel. */
+  def !(x: A) = synchronized{ data.enqueue(x); notify() }
+
+  /** Receive on the channel. */
+  def ?(u: Unit) : A = synchronized{
+    while(data.isEmpty) wait()
+    data.dequeue()
+  }
 }

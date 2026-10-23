@@ -5,7 +5,7 @@ import event._
 import Swing.{HStrut,VStrut,HGlue}
 
 /** The main frame for the Spirograph program. */
-class SpirographMainFrame(model: Model, controller: Controller)
+class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
     extends MainFrame with FrameT{
   title = "Spirograph"
 
@@ -42,7 +42,6 @@ class SpirographMainFrame(model: Model, controller: Controller)
         if(sizeText.nonEmpty && sizeText.forall(_.isDigit)){
           lastTime = currentTime; val wheelSize = sizeText.toInt
           if(wheelSize > 0) controller.makeNewWheel(wheelSize)
-//            model.makeNewWheel(wheelSize); drawingPanel.repaint()
           showMainMenu() 
         }
       }
@@ -50,19 +49,58 @@ class SpirographMainFrame(model: Model, controller: Controller)
     }
   } // end of newWheelPanel
 
+  private var addingPen = false
+
   /** Panel displaying information about the currently selected piece. */
   private class SelectionPanel extends FlowPanel{
-    private val label = new Label(""); 
-    private val rollButton = Button("Roll"){ controller.roll() }
+    // Possible states
+    val Normal = 0; val Rolling = 1; val AddingPen = 2
+    var state = 0
+    private val label = new Label("")
+
+// TODO: have both "cancel" and "stop" buttons.
+
+    /* Buttons. */
+    private val addPenButton = Button("Add pen"){ addPenMode() }
+    private val rollButton = Button("Roll"){ startRolling() }
     private val rollOneButton = Button("Roll one step"){ controller.rollOne() }
-    rollButton.visible = false; rollOneButton.visible = false
-    private val doneButton =  Button("Done"){ showMainMenu() }
-    contents ++= 
-      List(label, Swing.HStrut(15), rollButton, rollOneButton, doneButton)
+    private val doneButton = Button("Done"){ 
+      if(state == AddingPen) update(model.getCurrentPiece) else showMainMenu() 
+    }
+    private val cancelButton = Button("Cancel"){ controller.cancelRoll() 
+      // if(state == Rolling) controller.cancelRoll() 
+      // else update(model.getCurrentPiece)
+    }
+    private val buttons = 
+      List(addPenButton, rollButton, rollOneButton, doneButton, cancelButton)
+    buttons.foreach(b => b.visible = (b == doneButton || b == addPenButton))
+
+    contents ++= List(label, Swing.HStrut(20)) ++ buttons
+
     /** Update this panel based on `p`. */
-    def update(p: Piece) = { 
+    def update(p: Piece): Unit = { 
+      state = Normal
+      drawingPanel.addingPen = false
       label.text = p.report; val allowRolls = p.isCoupled
       rollButton.visible = allowRolls; rollOneButton.visible = allowRolls
+      doneButton.visible = true; addPenButton.visible = true
+      cancelButton.visible = false
+    }
+
+    /** Start the current piece rolling. */
+    private def startRolling(): Unit = { 
+      state = Rolling
+      buttons.foreach(b => b.visible = (b == cancelButton))
+      drawingPanel.startRolling()
+      controller.roll()
+    }
+
+    private def addPenMode(): Unit = {
+      state = AddingPen
+      label.text = "Click to add pen"
+      buttons.foreach(b => b.visible = (b == doneButton))
+      // Update buttons
+      drawingPanel.addingPen = true
     }
   }
 
@@ -103,6 +141,9 @@ class SpirographMainFrame(model: Model, controller: Controller)
   /** React to piece `p` being moved.  Give information about it in the
     * selection panel, and redraw main panel. */
   def movePiece(p: Piece) = { 
-    showSelectionPanel(); selectionPanel.update(p); drawingPanel.repaint() 
+    showSelectionPanel(); selectionPanel.update(p); 
+    drawingPanel.stopRolling(); drawingPanel.repaint()
   }
+
+  def repaintDrawingPanel() = drawingPanel.repaint()
 }

@@ -6,7 +6,8 @@ import java.awt.{Color,Font,Graphics2D, Point, geom}
 import DrawingPanel._
 
 /** The main panel for drawing. */
-class DrawingPanel(model: Model, controller: Controller) extends Panel{
+class DrawingPanel(model: ModelFacadeForView, controller: Controller) 
+    extends Panel{
 
   // ========= Coordinate conversion
 
@@ -67,19 +68,30 @@ class DrawingPanel(model: Model, controller: Controller) extends Panel{
     }
   }
 
+
   // ===== Reactions
+
+  private var rolling = false
+
+  def startRolling() = rolling = true
+
+  def stopRolling() = rolling = false
+
+  var addingPen = false
 
   listenTo(mouse.clicks, mouse.moves)
 
   reactions += {
-    case e: MousePressed => // Select piece
+    case e: MousePressed if !rolling && !addingPen => // Select piece
       val v = getCoords(e); controller.selectPieceAt(v)
 
-    case e: MouseDragged => // Move piece
+    case e: MouseDragged if !rolling  && !addingPen => // Move piece
       val v = getCoords(e); controller.moveCurrentPiece(v)
 
-    case e: MouseReleased => // Drop piece
-      val v = getCoords(e); controller.moveCurrentPiece(v) //.dropPieceAt(v)
+    case e: MouseReleased if !rolling  => // Drop piece
+      val v = getCoords(e)
+      if(addingPen) controller.addPen(v)
+      else controller.moveCurrentPiece(v) 
   }
 }
 

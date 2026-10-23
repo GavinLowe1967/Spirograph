@@ -13,6 +13,9 @@ trait Piece{
   /** Set the reference position of this to v. */
   def setPosition(v: Vector) = position = v
 
+  /** The length of the perimeter of this. */
+  def perimeter: Int
+
   // ========= Operations in subclasses. =========
 
   /** Add a pen at position `v` and colour `c`. */
@@ -33,13 +36,13 @@ trait Piece{
 
   def checkOnPerimeter(v: Vector): Unit
 
-  /** Move this by `v`, and couple to `other`. */
-  def moveByAndCouple(v: Vector, other: Piece): Unit
+  /** Move this by `v`, and couple to `other` at `join`. */
+  def moveByAndCouple(v: Vector, other: Piece, join: Vector): Unit
 
-  /** A vector between the closest points of this and other, and its length.
-    * Moving this by the resulting vector will mean that the two pieces just
-    * touch.  */
-  def vectorTo(other: Piece): (Vector, Double)
+  /** A vector between the closest points of this and other, its length, and the
+    * closest point of other.  Moving this by the resulting vector will mean
+    * that the two pieces just touch at the closet point of other.  */
+  def vectorTo(other: Piece): (Vector, Double, Vector)
 
   /** The vector corresponding to moving distance `d` along the perimeter of
     * this from `v` in an anticlockwise direction, and a unit vector normal to

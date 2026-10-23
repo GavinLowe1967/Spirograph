@@ -8,7 +8,7 @@ $(DIR)/Piece.class: $(DIR)/Vector.class
 
 $(DIR)/Wheel.class: $(DIR)/Piece.class
 
-$(DIR)/Model.class:  $(DIR)/Wheel.class
+$(DIR)/Model.class:  $(DIR)/Wheel.class $(DIR)/FrameT.class
 
 # ===== Controller
 

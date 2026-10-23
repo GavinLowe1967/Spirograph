@@ -25,9 +25,14 @@ case class Vector(x: Double, y: Double){
   /** Convert this to a pair. */
   def asPair = (x,y)
 
+  /** Represent as a String, to 1DP. */
+  def report = f"($x%.1f, $y%.1f)"
+
   /** The angle of this in polar coordinates, in the range (-pi,pi] (I think). */
   def theta: Double = Math.atan2(y,x)
 }
+
+// =========
 
 object Vector{
   /** The vector corresponding to polar coordinates (r,theta). */

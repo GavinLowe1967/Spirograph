@@ -1,14 +1,29 @@
 package spirograph
 
 import java.awt.Color
+import Model._
 
-// trait ControllerT{
-//   def redisplay(): Unit
-// }
+/** The model, as seen from the view. */
+trait ModelFacadeForView{
+  /* The height and width of the model's grid. */
+  val height: Int; val width: Int
 
-class Model{
+  /* Get the current list of pieces. */
+  def getPieces: List[Piece]
+
+  /** Get the current list of drawn line segments. */ 
+  def getLines: List[LineSegment]
+
+  def getCurrentPiece: Piece
+}
+
+// =======================================================
+
+class Model extends ModelFacadeForView{
+  /** The view. */
   private var app: FrameT = null
 
+  /** Set the view to be `f`. */
   def setFrame(f: FrameT) = app = f
 
   val height = 100; val width = 100
@@ -16,7 +31,7 @@ class Model{
   /** The current pieces. */
   @volatile private var pieces = List[Piece]()
 
-  def getPieces = pieces
+  def getPieces: List[Piece] = pieces
   // Note: the DrawingPanel needs to obtain pieces while rolling is happening,
   // so another thread holds the synchronized lock.  Hence the above doesn't
   // use "synchronized", but instead a volatile variable.
@@ -26,7 +41,9 @@ class Model{
   /** The currently selected piece, if any.  A piece becomes the current piece
     * when it is selected with the mouse.  It stops being the current piece
     * when the "Done" button is pressed, or another piece is selected. */
-  private var currentPiece: Piece = null
+  @volatile private var currentPiece: Piece = null
+
+  def getCurrentPiece = currentPiece
 
   /** Move the current piece to (x,y). */
   private def setCurrentPos(v: Vector) = 
@@ -56,14 +73,15 @@ class Model{
   /** If the current piece is within SnapDistance of another Piece, "snap" it so
     * that it touches. */
   private def maybeSnap() = if(pieces.length > 1){
-    // Find closest other
+    // Find closest other in closestP; minD is the distance; minV is the
+    // vector to move; minJ will be the join point.
     var minD = Double.MaxValue; var minV: Vector = null
-    var closestP: Piece = null
+    var closestP: Piece = null; var minJ: Vector = null
     for(p <- pieces; if p != currentPiece){
-      val (v, d) = currentPiece.vectorTo(p) 
-      if(d < minD){ minD = d; closestP = p; minV = v }
+      val (v, d, j) = currentPiece.vectorTo(p) 
+      if(d < minD){ minD = d; closestP = p; minV = v; minJ = j }
     }
-    if(minD < SnapDistance) currentPiece.moveByAndCouple(minV, closestP)
+    if(minD < SnapDistance) currentPiece.moveByAndCouple(minV, closestP, minJ)
     else currentPiece.uncouple()
   }
 
@@ -77,24 +95,48 @@ class Model{
   /** Drop the current piece, if any, at (x,y).  Return true if successful. */
   def dropCurrentPiece(v: Vector) = synchronized{ currentPiece = null }
 
+  /** The greatest common divisor of `a` and `b`. */
+  private def gcd(a: Int, b: Int) = {
+    require(a > 0 && b > 0)
+    var x = a; var y = b // Inv: gcd(x,y) = gcd(a,b)
+    while(y > 0){
+      // x, y = y, x%y
+      val t = y; y = x%y; x = t
+    }
+    x
+  }
+
+  /** The last common multiplier of `a` and `b`. */
+  private def lcm(a: Int, b: Int) = a*b/gcd(a,b)
+
   // Amount to advance in one step.
   private val delta = 0.5
 
-  /** Roll the current piece. */
-  def rollCurrentPiece() = synchronized{
+  /** Has the current call of rollCurrentPiece been cancelled? */
+  @volatile private var cancelled = false
+
+  /** Roll the current piece.  Return that piece at the end. */
+  def rollCurrentPiece(): Piece = synchronized{
     require(currentPiece.isCoupled)
-    val (other,v0) = currentPiece.coupling // coupling to move from
-    var v = v0
-    while(true){ // FIXME
-      v = rollStep(other,v); app.redisplay(); Thread.sleep(30)
+    val (other,v0) = currentPiece.coupling // Coupling to move from
+    var v = v0 // Current position
+    // Distance so far; and total required.
+    var d = 0.0; val total = lcm(currentPiece.perimeter, other.perimeter)
+    while(d < total && !cancelled){ 
+      v = rollStep(other,v); d += delta; 
+      app.repaintDrawingPanel(); Thread.sleep(30)
     }
+    cancelled = false // Reset for next time
+    currentPiece
   }
-// TODO: stop above loop when back to start point, or interrupted.
+
+  /** Cancel the current rolling. */
+  def cancelRoll() = cancelled = true
 
   /** Roll the current piece for one step. */
   def rollCurrentPieceOneStep() = synchronized{
     require(currentPiece.isCoupled)
-    val (other,v) = currentPiece.coupling // coupling to move from
+    val (other,v) = currentPiece.coupling // Coupling to move from
     rollStep(other,v)
   }
 
@@ -121,10 +163,10 @@ class Model{
     val p = new Wheel(c, v); addPiece(p)
   }
 
-  // ========= Drawn lines =========
+  /** Add a pen to the current piece at position v. */
+  def addPen(v: Vector) = currentPiece.addPen(v, Color.red)
 
-  /** A single line segment (start-point, colour, end-point). */
-  type LineSegment = (Vector, Color, Vector)
+  // ========= Drawn lines =========
 
   @volatile private var lines = List[LineSegment]()
 
@@ -134,6 +176,11 @@ class Model{
   // Note: the DrawingPanel needs to obtain lines while rolling is happening,
   // so another thread holds the synchronized lock.  Hence the above doesn't
   // use "synchronized", but instead a volatile variable.
+}
 
+// =======================================================
 
+object Model{
+  /** A single line segment (start-point, colour, end-point). */
+  type LineSegment = (Vector, Color, Vector)
 }

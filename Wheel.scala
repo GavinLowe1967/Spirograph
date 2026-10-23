@@ -20,7 +20,9 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
 
   private def offset(v: Vector) = v-position
 
-  def report = s"Wheel, circumference $c, centre at ${position.asPair}"
+  def perimeter = c
+
+  def report = s"Wheel, circumference $c, centre at ${position.report}"
 
   /** Is `v` on the perimeter of this, to within Piece.Tolerance? */
   def onPerimeter(v: Vector) = 
@@ -36,20 +38,23 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
 
   /** Move this by `v`, and couple to `other`.  Pre: `v` is the vector between
     * the closest points of `this` and `other`. */
-  def moveByAndCouple(v: Vector, other: Piece) = {
+  def moveByAndCouple(v: Vector, other: Piece, join: Vector) = {
     synchronized{ position += v }
-    val join = position + v.unit*radius // Join point, where the two touch
-    checkOnPerimeter(join)
+    // val join1 = position + v.unit*radius // Join point, where the two touch
+    // if((join1-join).length > 0.001) println(s"$join $join1")
+    // Note: join1 is incorrect when the wheels overlap. 
+    checkOnPerimeter(join); other.checkOnPerimeter(join)
     coupleTo(other,join)
   }
 
-  /** A vector between the closest points of this and other, and its length.
-    * Moving this by the resulting vector will mean that the two pieces just
-    * touch. */
-  def vectorTo(other: Piece): (Vector, Double) = other match{
+  /** A vector between the closest points of this and other, its length, and the
+    * closest point of other.  Moving this by the resulting vector will mean
+    * that the two pieces just touch at the closet point of other. */
+  def vectorTo(other: Piece): (Vector, Double, Vector) = other match{
     case w: Wheel => 
       val v1 = w.position-position; val sep = v1.length-radius-w.radius
-      (v1.unit*sep, math.abs(sep))
+      val dist = v1.length-w.radius
+      (v1.unit*sep, math.abs(sep), position+v1.unit*dist)
 // Does this go wrong if v1 is very small?
   }    
 
@@ -96,7 +101,7 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
   }
 
   // Test
-  addPen(position+Vector(radius*0.9, 0.0), Color.red)
+//  addPen(position+Vector(radius*0.9, 0.0), Color.red)
 
   def getPens: List[(Vector,Color)] = 
     pens.map{ case (r,theta,c) => 
