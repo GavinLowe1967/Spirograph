@@ -164,7 +164,7 @@ class Model extends ModelFacadeForView{
   }
 
   /** Add a pen to the current piece at position v. */
-  def addPen(v: Vector) = currentPiece.addPen(v, Color.red)
+  def addPen(v: Vector, c: Color) = currentPiece.addPen(v, c)
 
   // ========= Drawn lines =========
 

@@ -1,6 +1,7 @@
 package spirograph
 
 import scala.swing._
+import java.awt.Color
 
 import Controller._
 
@@ -32,7 +33,7 @@ class Controller(model: Model){
   /** Cancel a roll. */
   def cancelRoll() = channel!CancelRoll
   /** Add pen. */
-  def addPen(v: Vector) = channel!AddPen(v) 
+  def addPen(v: Vector, c: Color) = channel!AddPen(v,c) 
 
   @volatile private var rolling = false 
 
@@ -71,7 +72,7 @@ class Controller(model: Model){
           // Note: this leads to the execution of the last line of the thread
           // for the `Roll` event, so resets.
 
-        case AddPen(v) if !rolling => model.addPen(v)
+        case AddPen(v,c) if !rolling => model.addPen(v, c); redisplay()
 
         case e => println(s"Event ignored: $e")
       }
@@ -102,7 +103,7 @@ object Controller{
   /** Even to cancel a roll. */
   case object CancelRoll extends Event
   /** Event to add a pen. */
-  case class AddPen(v: Vector) extends Event
+  case class AddPen(v: Vector, c: Color) extends Event
 }
 
 // =======================================================

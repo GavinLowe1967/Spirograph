@@ -43,6 +43,9 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
   // )
   // private val transform = new java.awt.geom.AffineTransform(transformArray)
 
+  /** The drawn radius of each pen. */
+  val PenRadius = 3
+
   /** Paint this panel. */
   override def paintComponent(g: Graphics2D) = {
     super.paintComponent(g) 
@@ -50,14 +53,18 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
     // Paint pieces
     for(piece <- model.getPieces) piece match{
       case w: Wheel => 
-        val (Vector(x,y), theta) = w.getState; val r = w.radius
+        val (v @ Vector(x,y), theta) = w.getState; val r = w.radius
         val size = lengthToScreen(2*r); g.setColor(WheelColour)
         // Circumference
         g.drawOval(gridToScreenX(x-r), gridToScreenY(y+r), size, size)
         // Reference radius
-        //val theta = w.orientation
         g.drawLine(gridToScreenX(x), gridToScreenY(y), 
           gridToScreenX(x+r*Math.cos(theta)), gridToScreenY(y+r*Math.sin(theta)))
+        // Pens
+        for((vp,c) <- w.getPens){
+          g.setColor(c); val (xp,yp) = toScreen(vp)
+          g.fillOval(xp-PenRadius, yp-PenRadius, 2*PenRadius, 2*PenRadius)
+        }
     }
 
     // Paint lines
@@ -79,6 +86,8 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
 
   var addingPen = false
 
+  var penColour = Color.red
+
   listenTo(mouse.clicks, mouse.moves)
 
   reactions += {
@@ -90,7 +99,7 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
 
     case e: MouseReleased if !rolling  => // Drop piece
       val v = getCoords(e)
-      if(addingPen) controller.addPen(v)
+      if(addingPen) controller.addPen(v, penColour)
       else controller.moveCurrentPiece(v) 
   }
 }

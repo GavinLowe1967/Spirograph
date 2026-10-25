@@ -6,7 +6,7 @@ import Swing.{HStrut,VStrut,HGlue}
 
 /** The main frame for the Spirograph program. */
 class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
-    extends MainFrame with FrameT{
+    extends MainFrame with FrameT with MainFrameT{
   title = "Spirograph"
 
   /* ========= The components ========= */
@@ -52,59 +52,9 @@ class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
   private var addingPen = false
 
   /** Panel displaying information about the currently selected piece. */
-  private class SelectionPanel extends FlowPanel{
-    // Possible states
-    val Normal = 0; val Rolling = 1; val AddingPen = 2
-    var state = 0
-    private val label = new Label("")
 
-// TODO: have both "cancel" and "stop" buttons.
-
-    /* Buttons. */
-    private val addPenButton = Button("Add pen"){ addPenMode() }
-    private val rollButton = Button("Roll"){ startRolling() }
-    private val rollOneButton = Button("Roll one step"){ controller.rollOne() }
-    private val doneButton = Button("Done"){ 
-      if(state == AddingPen) update(model.getCurrentPiece) else showMainMenu() 
-    }
-    private val cancelButton = Button("Cancel"){ controller.cancelRoll() 
-      // if(state == Rolling) controller.cancelRoll() 
-      // else update(model.getCurrentPiece)
-    }
-    private val buttons = 
-      List(addPenButton, rollButton, rollOneButton, doneButton, cancelButton)
-    buttons.foreach(b => b.visible = (b == doneButton || b == addPenButton))
-
-    contents ++= List(label, Swing.HStrut(20)) ++ buttons
-
-    /** Update this panel based on `p`. */
-    def update(p: Piece): Unit = { 
-      state = Normal
-      drawingPanel.addingPen = false
-      label.text = p.report; val allowRolls = p.isCoupled
-      rollButton.visible = allowRolls; rollOneButton.visible = allowRolls
-      doneButton.visible = true; addPenButton.visible = true
-      cancelButton.visible = false
-    }
-
-    /** Start the current piece rolling. */
-    private def startRolling(): Unit = { 
-      state = Rolling
-      buttons.foreach(b => b.visible = (b == cancelButton))
-      drawingPanel.startRolling()
-      controller.roll()
-    }
-
-    private def addPenMode(): Unit = {
-      state = AddingPen
-      label.text = "Click to add pen"
-      buttons.foreach(b => b.visible = (b == doneButton))
-      // Update buttons
-      drawingPanel.addingPen = true
-    }
-  }
-
-  private val selectionPanel = new SelectionPanel
+  private val selectionPanel = 
+    new SelectionPanel(model, controller, this, drawingPanel)
 
   /* ========= Controlling which panels are displayed. ========= */
 
@@ -115,7 +65,7 @@ class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
   }
 
   /** Show the main menu of buttons. */
-  private def showMainMenu(): Unit =  { 
+  def showMainMenu(): Unit =  {
     newWheelPanel.visible = false; buttonPanel.visible = true
     selectionPanel.visible = false
   }

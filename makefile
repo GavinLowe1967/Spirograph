@@ -18,7 +18,9 @@ $(DIR)/Controller.class:  $(DIR)/Model.class $(DIR)/FrameT.class
 
 $(DIR)/DrawingPanel.class: $(DIR)/Model.class $(DIR)/Controller.class
 
-$(DIR)/SpirographMainFrame.class: $(DIR)/DrawingPanel.class $(DIR)/FrameT.class
+$(DIR)/SelectionPanel.class: $(DIR)/DrawingPanel.class
+
+$(DIR)/SpirographMainFrame.class: $(DIR)/DrawingPanel.class $(DIR)/SelectionPanel.class $(DIR)/FrameT.class
 
 
 $(DIR)/Spirograph.class: $(DIR)/SpirographMainFrame.class $(DIR)/Controller.class
