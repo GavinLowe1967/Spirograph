@@ -84,8 +84,10 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
 
   def stopRolling() = rolling = false
 
+  /** Is a pen being added?  Set by SelectionPanel. */
   var addingPen = false
 
+  /** Current pen colour.  Set by SelectionPanel. */
   var penColour = Color.red
 
   listenTo(mouse.clicks, mouse.moves)

@@ -12,4 +12,7 @@ trait FrameT{
 
   /** Repaint the DrawingPanel. */
   def repaintDrawingPanel(): Unit
+
+  /** Show the main menu of buttons. */
+  def showMainMenu(): Unit 
 }

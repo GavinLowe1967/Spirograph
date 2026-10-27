@@ -1,7 +1,7 @@
 package spirograph
 
 import scala.swing._
-import java.awt.Color
+import java.awt.{Color,Font}
 
 trait MainFrameT{
   def showMainMenu(): Unit
@@ -16,6 +16,9 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
   val Normal = 0; val Rolling = 1; val AddingPen = 2
   var state = 0
 
+//  preferredSize = new Dimension(420,120)
+// IMPROVE: link to colourChooser  
+
   /** Label for text. */
   private val label = new Label("")
 
@@ -25,38 +28,43 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
   private val addPenButton = Button("Add pen"){ addPenMode() }
   private val rollButton = Button("Roll"){ startRolling() }
   private val rollOneButton = Button("Roll one step"){ controller.rollOne() }
+  private val deleteButton = Button("Delete"){ controller.deletePiece() }
   private val doneButton = Button("Done"){
     if(state == AddingPen) update(model.getCurrentPiece) 
     else mainFrame.showMainMenu()
   }
-  private val cancelButton = Button("Cancel"){ controller.cancelRoll()
-  }
+  private val cancelButton = Button("Cancel"){ controller.cancelRoll() }
 
-  private val buttons =
-    List(addPenButton, rollButton, rollOneButton, doneButton, cancelButton)
+  private val buttons = List(
+    addPenButton, rollButton, rollOneButton, 
+    deleteButton, doneButton, cancelButton)
 
   /** Make just the buttons in `bs` visible. */
   private def showButtons(bs: List[Button]): Unit = 
     buttons.foreach(b => b.visible = (bs.contains(b)))
   private def showButtons(bs: Button*): Unit = showButtons(bs.toList)
 
-  /* Start with just the "Done" and "Add pen" buttons. */
-  showButtons(doneButton, addPenButton)
+  /* Start with just the "Done", "Delete" and "Add pen" buttons. */
+  showButtons(doneButton, deleteButton, addPenButton)
 
-// IMPROVE: share with drawingPanel
-  private var penColour = Color.red
+  /** The current pen colour. */
+  private def penColour = drawingPanel.penColour
 
   /** Panel to show the current pen colour. */
   private val colourShower = new Panel{
-    preferredSize = new Dimension(40,40)
+    val width = 60; val diameter = 18
+    preferredSize = new Dimension(width,55); visible = false
     override def paintComponent(g: Graphics2D) = {
-      super.paintComponent(g); g.setColor(penColour); g.fillOval(10,10,20,20)
+      super.paintComponent(g);
+      SelectionPanel.drawCenteredStrings(
+        g, List("Current", "colour"), width/2, 10, Color.black, label.font) 
+      g.setColor(penColour); g.fillOval(width/2-diameter/2,34,diameter,diameter)
     }
   }
 
   /** Component to choose the current colour. */
   private val colourChooser = new ColorChooser{
-    preferredSize = new Dimension(450,150)
+    preferredSize = new Dimension(420,100); visible = false
     peer.setPreviewPanel(new javax.swing.JPanel())
     // Use only the DefaultSwatchChooserPanel
     //println(peer.getChooserPanels.mkString("\n"))
@@ -66,13 +74,11 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
     // That's a hack; but seems the least bad way. 
     reactions += { 
       case event.ColorChanged(s,colour) => 
-        penColour = colour; colourShower.repaint()
-        drawingPanel.penColour = colour
+        colourShower.repaint(); drawingPanel.penColour = colour
     }
   }
 
-  colourShower.visible = false; colourChooser.visible = false 
-
+  /* Set contents. */
   contents ++= List(label, Swing.HStrut(20)) ++ buttons ++ 
     List(Swing.HStrut(20), colourChooser, colourShower)
 
@@ -81,9 +87,9 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
     state = Normal; label.text = p.report 
     drawingPanel.addingPen = false
     colourShower.visible = false; colourChooser.visible = false
-    if(p.isCoupled) 
-      showButtons(doneButton, addPenButton, rollButton, rollOneButton)
-    else showButtons(doneButton, addPenButton)
+    if(p.isCoupled) showButtons(
+      doneButton, deleteButton, addPenButton, rollButton, rollOneButton)
+    else showButtons(doneButton, deleteButton, addPenButton)
   }
 
   /** Start the current piece rolling. */
@@ -95,6 +101,37 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
   /** Switch to mode for adding pen. */
   private def addPenMode(): Unit = {
     state = AddingPen; label.text = "Click to add pen"; showButtons(doneButton)
-    colourShower.visible = true; colourChooser.visible = true; drawingPanel.addingPen = true
+    colourShower.visible = true; colourChooser.visible = true; 
+    drawingPanel.addingPen = true
   }
+}
+
+
+// =======================================================
+
+object SelectionPanel{
+  /** Draw text with centre at screen coordinates (x,y). */
+  def drawCenteredString(
+    g: Graphics2D, text: String, x: Int, y: Int, colour: Color, font: Font)
+  = {
+    val metrics = g.getFontMetrics(font)
+    val xx = x - metrics.stringWidth(text) / 2
+    val yy = y + metrics.getHeight() / 2 
+    g.setFont(font); g.setColor(colour); g.drawString(text, xx, yy)
+  }
+
+  /** Display text, one entry per line, with centre-top at (x,y). */
+  def drawCenteredStrings(
+    g: Graphics2D, text: List[String], x: Int, y: Int, colour: Color, font: Font)
+  = {
+    val metrics = g.getFontMetrics(font)
+    g.setFont(font); g.setColor(colour)
+    var yy = y; val deltaY = metrics.getHeight() 
+    for(st <- text){
+      val xx = x - metrics.stringWidth(st) / 2
+      g.drawString(st, xx, yy); yy += deltaY
+    }
+
+  }
+
 }

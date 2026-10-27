@@ -34,6 +34,8 @@ class Controller(model: Model){
   def cancelRoll() = channel!CancelRoll
   /** Add pen. */
   def addPen(v: Vector, c: Color) = channel!AddPen(v,c) 
+  /** Delete piece. */
+  def deletePiece() = channel!DeletePiece
 
   @volatile private var rolling = false 
 
@@ -74,6 +76,9 @@ class Controller(model: Model){
 
         case AddPen(v,c) if !rolling => model.addPen(v, c); redisplay()
 
+        case DeletePiece if !rolling => 
+          model.deleteCurrentPiece(); redisplay(); app.showMainMenu()
+
         case e => println(s"Event ignored: $e")
       }
     }
@@ -104,6 +109,8 @@ object Controller{
   case object CancelRoll extends Event
   /** Event to add a pen. */
   case class AddPen(v: Vector, c: Color) extends Event
+  /** Event to delete the current piece. */
+  case object DeletePiece extends Event
 }
 
 // =======================================================

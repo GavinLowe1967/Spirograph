@@ -28,6 +28,8 @@ class Model extends ModelFacadeForView{
 
   val height = 100; val width = 100
 
+  // ========= The pieces =========
+
   /** The current pieces. */
   @volatile private var pieces = List[Piece]()
 
@@ -38,6 +40,21 @@ class Model extends ModelFacadeForView{
 
   private def addPiece(p: Piece) = synchronized{ pieces ::= p }
 
+  /** Get the piece at `(x,y)`, or `null` if there is no such piece. */
+  private def pieceAt(v: Vector): Piece = {
+    var ps = pieces // ; val v = Vector(x,y)
+    while(ps.nonEmpty && !ps.head.contains(v)) ps = ps.tail
+    if(ps.nonEmpty) ps.head else null
+  }
+
+  /** Make a new wheel of circumference c. */
+  def makeNewWheel(c: Int) = synchronized{
+    val r = c/(2*Math.PI); val v = Vector(r+0.5,r+1) // initial position
+    val p = new Wheel(c, v); addPiece(p)
+  }
+
+  // ========= The current piece.
+
   /** The currently selected piece, if any.  A piece becomes the current piece
     * when it is selected with the mouse.  It stops being the current piece
     * when the "Done" button is pressed, or another piece is selected. */
@@ -46,21 +63,14 @@ class Model extends ModelFacadeForView{
   def getCurrentPiece = currentPiece
 
   /** Move the current piece to (x,y). */
-  private def setCurrentPos(v: Vector) = 
-    currentPiece.setPosition(v)
-
-  /** Get the piece at `(x,y)`, or `null` if there is no such piece. */
-  private def pieceAt(v: Vector): Piece = {
-    var ps = pieces // ; val v = Vector(x,y)
-    while(ps.nonEmpty && !ps.head.contains(v)) ps = ps.tail
-    if(ps.nonEmpty) ps.head else null
-  }
+  private def setCurrentPos(v: Vector) = currentPiece.setPosition(v)
 
   /** Set the current piece to be the one at (x,y), if any.  Return the piece,
     * or `null` if unsuccessful. */
   def selectPieceAt(v: Vector): Piece = synchronized{
-    // require(currentPiece == null); 
-    currentPiece = pieceAt(v)
+    var ps = pieces
+    while(ps.nonEmpty && !ps.head.contains(v)) ps = ps.tail
+    currentPiece = if(ps.nonEmpty) ps.head else null
     currentPiece 
   }
 
@@ -95,19 +105,15 @@ class Model extends ModelFacadeForView{
   /** Drop the current piece, if any, at (x,y).  Return true if successful. */
   def dropCurrentPiece(v: Vector) = synchronized{ currentPiece = null }
 
-  /** The greatest common divisor of `a` and `b`. */
-  private def gcd(a: Int, b: Int) = {
-    require(a > 0 && b > 0)
-    var x = a; var y = b // Inv: gcd(x,y) = gcd(a,b)
-    while(y > 0){
-      // x, y = y, x%y
-      val t = y; y = x%y; x = t
-    }
-    x
+  /** Add a pen to the current piece at position v. */
+  def addPen(v: Vector, c: Color) = currentPiece.addPen(v, c)
+
+  def deleteCurrentPiece() = {
+    pieces = pieces.filter(_ != currentPiece)
+    currentPiece = null
   }
 
-  /** The last common multiplier of `a` and `b`. */
-  private def lcm(a: Int, b: Int) = a*b/gcd(a,b)
+  // ========= Rolling ========
 
   // Amount to advance in one step.
   private val delta = 0.5
@@ -157,14 +163,6 @@ class Model extends ModelFacadeForView{
     newJoin
   }
 
-  /** Make a new wheel of circumference c. */
-  def makeNewWheel(c: Int) = synchronized{
-    val r = c/(2*Math.PI); val v = Vector(r+0.5,r+1) // initial position
-    val p = new Wheel(c, v); addPiece(p)
-  }
-
-  /** Add a pen to the current piece at position v. */
-  def addPen(v: Vector, c: Color) = currentPiece.addPen(v, c)
 
   // ========= Drawn lines =========
 
@@ -183,4 +181,18 @@ class Model extends ModelFacadeForView{
 object Model{
   /** A single line segment (start-point, colour, end-point). */
   type LineSegment = (Vector, Color, Vector)
+
+  /** The greatest common divisor of `a` and `b`. */
+  private def gcd(a: Int, b: Int) = {
+    require(a > 0 && b > 0)
+    var x = a; var y = b // Inv: gcd(x,y) = gcd(a,b)
+    while(y > 0){
+      // x, y = y, x%y
+      val t = y; y = x%y; x = t
+    }
+    x
+  }
+
+  /** The last common multiplier of `a` and `b`. */
+  private def lcm(a: Int, b: Int) = a*b/gcd(a,b)
 }
