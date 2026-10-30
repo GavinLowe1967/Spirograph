@@ -17,11 +17,19 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
   /** Round `x` to the nearest `Int`. */
   private def round(x: Double): Int = (x+0.5).toInt
 
+  /** The size of grid for the snap-to-grid feature. */
+  private val SnapGridSize = 1.0
+
   /* Convert logical coordinates to screen coordinates. */
   private def gridToScreenX(x: Double) = round(scaleF*x)
   private def gridToScreenY(y: Double) = round(scaleF*(model.height-y))
   private def lengthToScreen(l: Double) = round(scaleF*l)
   private def toScreen(v: Vector) = (gridToScreenX(v.x), gridToScreenY(v.y))
+
+  /** Round to the nearest multiple of GridSize. */
+  private def toGrid(x: Double): Double = 
+    ((x+SnapGridSize/2)/SnapGridSize).toInt*SnapGridSize
+  private def toGrid(v: Vector): Vector = Vector(toGrid(v.x), toGrid(v.y))
 
   /* Size of this panel. */
   val width = lengthToScreen(100.0); val height = width
@@ -33,24 +41,41 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
   /** Model coordinates for `e`. */
   private 
   def getCoords(e: MouseEvent): Vector = { val p = e.point; getCoords(p.x, p.y) }
+  /** Model coordinates for `e`, rounded to multiple of GridSize. */
+  //private def toGrid(e: MouseEvent): Vector = toGrid(getCoords(e))
 
   // ========== Painting
 
   border = Swing.EtchedBorder
 
-  // val transformArray = Array(
-  //   scaleF, 0.0, 0.0,   0.0, -scaleF, -scaleF*model.height,   0.0, 0.0, 1.0
-  // )
-  // private val transform = new java.awt.geom.AffineTransform(transformArray)
+  /** Should a grid be drawn? */
+  private var gridMode = true
 
-  /** The drawn radius of each pen. */
+  /** Toggle drawing of grid to `b`. */
+  def setGridMode(b: Boolean) = { gridMode = b; repaint() }
+
+  /** Gap between grid lines in model units. */
+  val GridSize = 4
+
+  /** The drawn radius of each pen, in screen units. */
   val PenRadius = 3
 
   /** Paint this panel. */
   override def paintComponent(g: Graphics2D) = {
-    super.paintComponent(g) 
-
-    // Paint pieces
+    super.paintComponent(g)     
+    // ========= Clear
+    g.setColor(BackgroundColour); g.fillRect(0,0, size.width, size.height)
+    // ========= Grid lines
+    g.setColor(GridColour)
+    if(gridMode){
+      for(x <- 0 until model.width.ceil.toInt by GridSize){
+        val x1 = gridToScreenX(x); g.drawLine(x1,0,x1,height)
+      }
+      for(y <- 0 until model.height.ceil.toInt by GridSize){
+        val y1 = gridToScreenY(y); g.drawLine(0,y1,width,y1)
+      }
+    }
+    // ========= Paint pieces
     for(piece <- model.getPieces) piece match{
       case w: Wheel => 
         val (v @ Vector(x,y), theta) = w.getState; val r = w.radius
@@ -66,8 +91,7 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
           g.fillOval(xp-PenRadius, yp-PenRadius, 2*PenRadius, 2*PenRadius)
         }
     }
-
-    // Paint lines
+    // ========= Paint drawn lines
     for((start,colour,end) <- model.getLines){
       g.setColor(colour)
       val (x1,y1) = toScreen(start); val (x2,y2) = toScreen(end)
@@ -75,9 +99,9 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
     }
   }
 
-
   // ===== Reactions
 
+  /** Is this currently rolling? */
   private var rolling = false
 
   def startRolling() = rolling = true
@@ -90,6 +114,13 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
   /** Current pen colour.  Set by SelectionPanel. */
   var penColour = Color.red
 
+  /** Is the "snap to grid" mode set? */
+  var snapToGrid = false
+
+  /** Model coordinates for `e`, rounded to the grid size if appropriate. */
+  private def maybeToGrid(e: MouseEvent): Vector = 
+    if(snapToGrid) toGrid(getCoords(e)) else getCoords(e)
+
   listenTo(mouse.clicks, mouse.moves)
 
   reactions += {
@@ -97,12 +128,11 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
       val v = getCoords(e); controller.selectPieceAt(v)
 
     case e: MouseDragged if !rolling  && !addingPen => // Move piece
-      val v = getCoords(e); controller.moveCurrentPiece(v)
+      val v = maybeToGrid(e); controller.moveCurrentPiece(v)
 
     case e: MouseReleased if !rolling  => // Drop piece
-      val v = getCoords(e)
-      if(addingPen) controller.addPen(v, penColour)
-      else controller.moveCurrentPiece(v) 
+      if(addingPen){ val v = getCoords(e); controller.addPen(v, penColour) }
+      else{ val v = maybeToGrid(e); controller.moveCurrentPiece(v) }
   }
 }
 
@@ -111,6 +141,8 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
 object DrawingPanel{
   /** Scale factor: the number of screen units per logical grid unit. */
   private var scaleF = 10.0
-
+  val BackgroundColour = Color.white
   val WheelColour = Color.blue
+  val GridColour = new Color(230,230,230)
+
 }

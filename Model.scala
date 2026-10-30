@@ -6,7 +6,7 @@ import Model._
 /** The model, as seen from the view. */
 trait ModelFacadeForView{
   /* The height and width of the model's grid. */
-  val height: Int; val width: Int
+  val height: Double; val width: Double
 
   /* Get the current list of pieces. */
   def getPieces: List[Piece]
@@ -26,7 +26,7 @@ class Model extends ModelFacadeForView{
   /** Set the view to be `f`. */
   def setFrame(f: FrameT) = app = f
 
-  val height = 100; val width = 100
+  val height = 100.0; val width = 100.0
 
   // ========= The pieces =========
 
@@ -123,7 +123,7 @@ class Model extends ModelFacadeForView{
 
   /** Roll the current piece.  Return that piece at the end. */
   def rollCurrentPiece(): Piece = synchronized{
-    require(currentPiece.isCoupled)
+    require(currentPiece.isCoupled); newRolls()
     val (other,v0) = currentPiece.coupling // Coupling to move from
     var v = v0 // Current position
     // Distance so far; and total required.
@@ -133,6 +133,7 @@ class Model extends ModelFacadeForView{
       app.repaintDrawingPanel(); Thread.sleep(30)
     }
     cancelled = false // Reset for next time
+    commitRolls() // Store these lines
     currentPiece
   }
 
@@ -141,9 +142,10 @@ class Model extends ModelFacadeForView{
 
   /** Roll the current piece for one step. */
   def rollCurrentPieceOneStep() = synchronized{
-    require(currentPiece.isCoupled)
+    require(currentPiece.isCoupled); newRolls()
     val (other,v) = currentPiece.coupling // Coupling to move from
     rollStep(other,v)
+    commitRolls()
   }
 
   /** Roll the current piece one step around `other`, starting from the join
@@ -166,14 +168,33 @@ class Model extends ModelFacadeForView{
 
   // ========= Drawn lines =========
 
-  @volatile private var lines = List[LineSegment]()
+// IMPROVE: factor into separate object. 
+  /** The lines from previous rolls. */
+  private var lines = List[List[LineSegment]]()
 
-  private def addLine(ls: LineSegment) = lines ::= ls
+  /** The lines from the current roll. */
+  private var rollLines = List[LineSegment]()
 
-  def getLines =  lines
+  /** Lock to protect `lines` and `rollLines`.  */
+  private val linesLock = new AnyRef
+
+  private def newRolls() = linesLock.synchronized{ rollLines = List() }
+
+  /** Commit the lines from the current roll. */
+  private def commitRolls() = linesLock.synchronized{ 
+    lines ::= rollLines; rollLines = List() 
+  }
+
+  /** Add `ls` to the current roll. */ 
+  private def addLine(ls: LineSegment) = linesLock.synchronized{ 
+    rollLines ::= ls 
+  }
+
+  /** Get all the drawn lines. */
+  def getLines = linesLock.synchronized{ rollLines++lines.flatten }
   // Note: the DrawingPanel needs to obtain lines while rolling is happening,
-  // so another thread holds the synchronized lock.  Hence the above doesn't
-  // use "synchronized", but instead a volatile variable.
+  // so another thread holds the synchronized lock.  Hence the above uses its
+  // one lock.
 }
 
 // =======================================================

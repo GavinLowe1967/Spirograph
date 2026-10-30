@@ -35,17 +35,31 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
   }
   private val cancelButton = Button("Cancel"){ controller.cancelRoll() }
 
+  private val gridModeCheckBox = new CheckBox("Grid mode"){
+    selected = true
+    reactions += {
+      case e: event.ButtonClicked => drawingPanel.setGridMode(selected)
+    }
+  }
+  private val snapCheckBox = new CheckBox("Snap to grid"){
+    reactions += {
+      case e: event.ButtonClicked => drawingPanel.snapToGrid = selected
+    }
+  }
+
   private val buttons = List(
     addPenButton, rollButton, rollOneButton, 
-    deleteButton, doneButton, cancelButton)
+    deleteButton, doneButton, cancelButton, gridModeCheckBox, snapCheckBox)
 
   /** Make just the buttons in `bs` visible. */
-  private def showButtons(bs: List[Button]): Unit = 
+  private def showButtons(bs: List[AbstractButton]): Unit = 
     buttons.foreach(b => b.visible = (bs.contains(b)))
-  private def showButtons(bs: Button*): Unit = showButtons(bs.toList)
+  private def showButtons(bs: AbstractButton*): Unit = showButtons(bs.toList)
 
-  /* Start with just the "Done", "Delete" and "Add pen" buttons. */
-  showButtons(doneButton, deleteButton, addPenButton)
+  /* Start with just the "Done", "Delete" and "Add pen" buttons, and the check
+   * boxes. */
+  showButtons(doneButton, deleteButton, addPenButton, 
+    gridModeCheckBox, snapCheckBox)
 
   /** The current pen colour. */
   private def penColour = drawingPanel.penColour
@@ -78,6 +92,7 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
     }
   }
 
+
   /* Set contents. */
   contents ++= List(label, Swing.HStrut(20)) ++ buttons ++ 
     List(Swing.HStrut(20), colourChooser, colourShower)
@@ -88,8 +103,10 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
     drawingPanel.addingPen = false
     colourShower.visible = false; colourChooser.visible = false
     if(p.isCoupled) showButtons(
-      doneButton, deleteButton, addPenButton, rollButton, rollOneButton)
-    else showButtons(doneButton, deleteButton, addPenButton)
+      doneButton, deleteButton, addPenButton, rollButton, rollOneButton, 
+      gridModeCheckBox, snapCheckBox)
+    else showButtons(doneButton, deleteButton, addPenButton,
+      gridModeCheckBox, snapCheckBox)
   }
 
   /** Start the current piece rolling. */
@@ -100,7 +117,8 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
 
   /** Switch to mode for adding pen. */
   private def addPenMode(): Unit = {
-    state = AddingPen; label.text = "Click to add pen"; showButtons(doneButton)
+    state = AddingPen; label.text = "Click to add pen"
+    showButtons(doneButton, gridModeCheckBox)
     colourShower.visible = true; colourChooser.visible = true; 
     drawingPanel.addingPen = true
   }
