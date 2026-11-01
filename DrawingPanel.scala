@@ -111,6 +111,9 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
   /** Is a pen being added?  Set by SelectionPanel. */
   var addingPen = false
 
+  /** Is a pen being deleted?  Set by SelectionPanel. */
+  var deletingPen = false
+
   /** Current pen colour.  Set by SelectionPanel. */
   var penColour = Color.red
 
@@ -125,12 +128,15 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
 
   reactions += {
     case e: MousePressed if !rolling && !addingPen => // Select piece
-      val v = getCoords(e); controller.selectPieceAt(v)
+      val v = getCoords(e)
+      if(deletingPen) controller.deletePen(v)
+      else controller.selectPieceAt(v)
 
-    case e: MouseDragged if !rolling  && !addingPen => // Move piece
+    case e: MouseDragged if !rolling  && !addingPen && !deletingPen => 
+      // Move piece
       val v = maybeToGrid(e); controller.moveCurrentPiece(v)
 
-    case e: MouseReleased if !rolling  => // Drop piece
+    case e: MouseReleased if !rolling && !deletingPen => // Drop piece
       if(addingPen){ val v = getCoords(e); controller.addPen(v, penColour) }
       else{ val v = maybeToGrid(e); controller.moveCurrentPiece(v) }
   }

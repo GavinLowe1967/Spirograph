@@ -108,6 +108,27 @@ class Model extends ModelFacadeForView{
   /** Add a pen to the current piece at position v. */
   def addPen(v: Vector, c: Color) = currentPiece.addPen(v, c)
 
+  /** Distance within which a "delete pen" action must be in order to
+    * trigger. */
+  private val PenTolerance = 1.0
+// IMPROVE: should be based on screen units
+
+  /** Delete a pen near to `v`. */
+  def deletePen(v: Vector) = {
+    // closestPen is the closest pen to v found so far; it belongs to
+    // closestPiece, and is at a distance closestD from v.
+    var closestPen: (Vector,Color) = null; var closestD = 2*PenTolerance
+    var closestPiece: Piece = null
+    for(p <- pieces; pen @ (v1,c1) <- p.getPens){
+      val d = (v-v1).length
+      if(d < PenTolerance && d < closestD){ 
+        closestPiece = p; closestPen = pen; closestD = d 
+      }
+    }
+    // println(closestPen)
+    if(closestPen != null) closestPiece.deletePen(closestPen)
+  }
+
   def deleteCurrentPiece() = {
     pieces = pieces.filter(_ != currentPiece)
     currentPiece = null
@@ -117,6 +138,9 @@ class Model extends ModelFacadeForView{
 
   // Amount to advance in one step.
   private val delta = 0.5
+
+  /** Has the current call of rollCurrentPiece been stopped? */
+  @volatile private var stopped = false
 
   /** Has the current call of rollCurrentPiece been cancelled? */
   @volatile private var cancelled = false
@@ -128,17 +152,21 @@ class Model extends ModelFacadeForView{
     var v = v0 // Current position
     // Distance so far; and total required.
     var d = 0.0; val total = lcm(currentPiece.perimeter, other.perimeter)
-    while(d < total && !cancelled){ 
+    while(d < total && !cancelled && !stopped){ 
       v = rollStep(other,v); d += delta; 
       app.repaintDrawingPanel(); Thread.sleep(30)
     }
-    cancelled = false // Reset for next time
-    commitRolls() // Store these lines
+    if(cancelled) newRolls() else commitRolls() // Store these lines
+    cancelled = false; stopped = false // Reset for next time
     currentPiece
   }
 
+  /** Stop the current rolling. */
+  def stopRoll() = stopped = true
+
   /** Cancel the current rolling. */
   def cancelRoll() = cancelled = true
+// TODO: remove these edges.
 
   /** Roll the current piece for one step. */
   def rollCurrentPieceOneStep() = synchronized{
@@ -192,6 +220,8 @@ class Model extends ModelFacadeForView{
 
   /** Get all the drawn lines. */
   def getLines = linesLock.synchronized{ rollLines++lines.flatten }
+  // IMPROVE?  A bit inefficient. 
+
   // Note: the DrawingPanel needs to obtain lines while rolling is happening,
   // so another thread holds the synchronized lock.  Hence the above uses its
   // one lock.

@@ -13,7 +13,7 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
   mainFrame: MainFrameT, drawingPanel: DrawingPanel)
     extends FlowPanel{
   // Possible states
-  val Normal = 0; val Rolling = 1; val AddingPen = 2
+  val Normal = 0; val Rolling = 1; val AddingPen = 2; val DeletingPen = 3
   var state = 0
 
 //  preferredSize = new Dimension(420,120)
@@ -26,15 +26,18 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
 
   /* Buttons. */
   private val addPenButton = Button("Add pen"){ addPenMode() }
+  private val deletePenButton = Button("Delete pen"){ deletePenMode() }
   private val rollButton = Button("Roll"){ startRolling() }
   private val rollOneButton = Button("Roll one step"){ controller.rollOne() }
   private val deleteButton = Button("Delete"){ controller.deletePiece() }
   private val doneButton = Button("Done"){
-    if(state == AddingPen) update(model.getCurrentPiece) 
+    if(state == AddingPen || state == DeletingPen) update(model.getCurrentPiece) 
     else mainFrame.showMainMenu()
   }
+  private val stopButton = Button("Stop"){ controller.stopRoll() }
   private val cancelButton = Button("Cancel"){ controller.cancelRoll() }
 
+  /* Check boxes. */
   private val gridModeCheckBox = new CheckBox("Grid mode"){
     selected = true
     reactions += {
@@ -47,9 +50,11 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
     }
   }
 
+  /* Buttons and check boxes. */
   private val buttons = List(
-    addPenButton, rollButton, rollOneButton, 
-    deleteButton, doneButton, cancelButton, gridModeCheckBox, snapCheckBox)
+    addPenButton, deletePenButton, rollButton, rollOneButton, 
+    deleteButton, doneButton,
+    stopButton, cancelButton, gridModeCheckBox, snapCheckBox)
 
   /** Make just the buttons in `bs` visible. */
   private def showButtons(bs: List[AbstractButton]): Unit = 
@@ -58,7 +63,7 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
 
   /* Start with just the "Done", "Delete" and "Add pen" buttons, and the check
    * boxes. */
-  showButtons(doneButton, deleteButton, addPenButton, 
+  showButtons(doneButton, deleteButton, addPenButton, deletePenButton,
     gridModeCheckBox, snapCheckBox)
 
   /** The current pen colour. */
@@ -92,7 +97,6 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
     }
   }
 
-
   /* Set contents. */
   contents ++= List(label, Swing.HStrut(20)) ++ buttons ++ 
     List(Swing.HStrut(20), colourChooser, colourShower)
@@ -100,18 +104,23 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
   /** Update this panel based on `p` being selected. */
   def update(p: Piece): Unit = {
     state = Normal; label.text = p.report 
-    drawingPanel.addingPen = false
+    drawingPanel.addingPen = false; drawingPanel.deletingPen = false
     colourShower.visible = false; colourChooser.visible = false
-    if(p.isCoupled) showButtons(
-      doneButton, deleteButton, addPenButton, rollButton, rollOneButton, 
+    var toShow = List(doneButton, deleteButton, addPenButton, deletePenButton,
       gridModeCheckBox, snapCheckBox)
-    else showButtons(doneButton, deleteButton, addPenButton,
-      gridModeCheckBox, snapCheckBox)
+    if(p.isCoupled) toShow ++= List(rollButton, rollOneButton)
+    showButtons(toShow)
+    // if(p.isCoupled) showButtons(
+    //   doneButton, deleteButton, addPenButton, deletePenButton, 
+    //   rollButton, rollOneButton,
+    //   gridModeCheckBox, snapCheckBox)
+    // else showButtons(doneButton, deleteButton, addPenButton, deletePenButton,
+    //   gridModeCheckBox, snapCheckBox)
   }
 
   /** Start the current piece rolling. */
   private def startRolling(): Unit = {
-    state = Rolling; showButtons(cancelButton)
+    state = Rolling; showButtons(stopButton, cancelButton)
     drawingPanel.startRolling(); controller.roll()
   }
 
@@ -119,11 +128,16 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
   private def addPenMode(): Unit = {
     state = AddingPen; label.text = "Click to add pen"
     showButtons(doneButton, gridModeCheckBox)
-    colourShower.visible = true; colourChooser.visible = true; 
+    colourShower.visible = true; colourChooser.visible = true
     drawingPanel.addingPen = true
   }
-}
 
+  private def deletePenMode() = {
+    state = DeletingPen; label.text = "Click pen to delete"
+    showButtons(doneButton, gridModeCheckBox)
+    drawingPanel.deletingPen = true
+  }
+}
 
 // =======================================================
 
@@ -149,7 +163,5 @@ object SelectionPanel{
       val xx = x - metrics.stringWidth(st) / 2
       g.drawString(st, xx, yy); yy += deltaY
     }
-
   }
-
 }

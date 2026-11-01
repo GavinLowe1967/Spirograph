@@ -14,7 +14,7 @@ class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
   /** The drawing panel. */
   private val drawingPanel = new DrawingPanel(model, controller)
 
-  /** Panel containing buttons. */
+  /** Main panel containing buttons. */
   private val buttonPanel = new BoxPanel(Orientation.Horizontal){
     border = Swing.EtchedBorder
     contents ++= List(HGlue, Button("New wheel"){ showNewWheelPanel() }, HGlue)
@@ -52,7 +52,6 @@ class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
   private var addingPen = false
 
   /** Panel displaying information about the currently selected piece. */
-
   private val selectionPanel = 
     new SelectionPanel(model, controller, this, drawingPanel)
 

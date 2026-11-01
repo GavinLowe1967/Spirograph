@@ -30,10 +30,14 @@ class Controller(model: Model){
   def roll() = channel!Roll
   /** Roll the current piece. */
   def rollOne() = channel!RollOne
+  /** Stop a roll. */
+  def stopRoll() = channel!StopRoll
   /** Cancel a roll. */
   def cancelRoll() = channel!CancelRoll
   /** Add pen. */
   def addPen(v: Vector, c: Color) = channel!AddPen(v,c) 
+  /** Add pen. */
+  def deletePen(v: Vector) = channel!DeletePen(v) 
   /** Delete piece. */
   def deletePiece() = channel!DeletePiece
 
@@ -69,12 +73,15 @@ class Controller(model: Model){
             app.movePiece(p); rolling = false
           }
 
-        case CancelRoll if rolling =>
-          model.cancelRoll()
-          // Note: this leads to the execution of the last line of the thread
-          // for the `Roll` event, so resets.
+        case StopRoll if rolling => model.stopRoll()
+
+        case CancelRoll if rolling => model.cancelRoll()
+          // Note: each of the above leads to the execution of the last line
+          // of the thread for the `Roll` event, so resets rolling to false.
 
         case AddPen(v,c) if !rolling => model.addPen(v, c); redisplay()
+
+        case DeletePen(v) if !rolling => model.deletePen(v); redisplay()
 
         case DeletePiece if !rolling => 
           model.deleteCurrentPiece(); redisplay(); app.showMainMenu()
@@ -105,10 +112,14 @@ object Controller{
   case object Roll extends Event
   /** Event to roll the current piece one step. */
   case object RollOne extends Event
+  /** Even to stop a roll. */
+  case object StopRoll extends Event
   /** Even to cancel a roll. */
   case object CancelRoll extends Event
   /** Event to add a pen. */
   case class AddPen(v: Vector, c: Color) extends Event
+  /** Event to delete a pen. */
+  case class DeletePen(v: Vector) extends Event
   /** Event to delete the current piece. */
   case object DeletePiece extends Event
 }

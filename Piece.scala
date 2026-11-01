@@ -25,6 +25,9 @@ trait Piece{
     * will return the same order for pens. */
   def getPens: List[(Vector,Color)]
 
+  /** Delete the given pen. */ 
+  def deletePen(pen: (Vector,Color)): Unit
+
   /** A description of the state of this. */
   def report: String 
 

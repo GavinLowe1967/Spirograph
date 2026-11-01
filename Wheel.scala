@@ -94,19 +94,36 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
 
   private var pens = List[(Double,Double,Color)]()
 
+  /** Get polar coordinates of `v` relative to the centre of this piece. */
+  private def getPolar(v: Vector): (Double, Double) = {
+    val offset = v-position
+    (offset.length, Vector.normAngle(offset.theta-orientation))
+  }
+
+  /** Convert from polar coordinates to an absolute vector. */
+  private def fromPolar(r: Double, theta: Double): Vector = 
+    position + Vector.fromPolar(r, theta+orientation)
+
   def addPen(v: Vector, c: Color) = {
-    val offset = v-position; val r = offset.length
-    val theta = Vector.normAngle(offset.theta-orientation)
+    val (r,theta) = getPolar(v)
+    // val offset = v-position; val r = offset.length
+    // val theta = Vector.normAngle(offset.theta-orientation)
     pens ::= (r,theta,c)
   }
 
-  // Test
-//  addPen(position+Vector(radius*0.9, 0.0), Color.red)
-
   def getPens: List[(Vector,Color)] = 
-    pens.map{ case (r,theta,c) => 
-      (position + Vector.fromPolar(r, theta+orientation), c)
-    }
+    pens.map{ case (r,theta,c) => (fromPolar(r, theta), c) }
+
+  def deletePen(pen: (Vector, Color)) = {
+    val (v,c) = pen
+    // Pens to delete.  Note: `v` was produced by another call to `fromPolar`,
+    // so there's no need to allow for rounding errors here.
+    val toDelete =
+      pens.filter{ case (r,theta,c1) => c1 == c && fromPolar(r, theta) == v }
+    assert(toDelete.nonEmpty)
+    // println(toDelete)
+    pens = pens.filter(p => !toDelete.contains(p))
+  }
 
 }
 
