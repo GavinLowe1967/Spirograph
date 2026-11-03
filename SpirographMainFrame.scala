@@ -3,6 +3,9 @@ package spirograph
 import scala.swing._
 import event._
 import Swing.{HStrut,VStrut,HGlue}
+import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
+import java.io.{File,IOException}
 
 /** The main frame for the Spirograph program. */
 class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
@@ -11,17 +14,23 @@ class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
 
   /* ========= The components ========= */
 
+  private val state = new ViewState
+
   /** The drawing panel. */
-  private val drawingPanel = new DrawingPanel(model, controller)
+  private val drawingPanel = new DrawingPanel(model, controller, state)
 
   /** Main panel containing buttons. */
-  private val buttonPanel = new BoxPanel(Orientation.Horizontal){
+  private val mainPanel = new FlowPanel{ // BoxPanel(Orientation.Horizontal){
     border = Swing.EtchedBorder
-    contents ++= List(HGlue, Button("New wheel"){ showNewWheelPanel() }, HGlue)
+    private val newWheelButton = Button("New wheel"){ showPanel(newWheelPanel) }
+    private val showRollsButton = 
+      Button("Show rolls"){ showPanel(rollViewPanel) }
+    private val saveButton = Button("Save"){ save() }
+    contents ++= List(newWheelButton, showRollsButton,  saveButton)
   }
 
   /** Panel for creating new wheel. */
-  private val newWheelPanel = new FlowPanel{ 
+  private val newWheelPanel: Panel = new FlowPanel{ 
     object sizeField extends TextField{ columns = 5 }
     contents ++= List(
       new Label("Size:"), sizeField, Swing.HStrut(10), Button("Done"){doDone()}
@@ -49,39 +58,53 @@ class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
     }
   } // end of newWheelPanel
 
-  private var addingPen = false
-
   /** Panel displaying information about the currently selected piece. */
   private val selectionPanel = 
-    new SelectionPanel(model, controller, this, drawingPanel)
+    new SelectionPanel(model, controller, this, state, drawingPanel)
+
+  /** Panel giving view of the different rolls. */
+  private val rollViewPanel = new FlowPanel{
+    private val prevButton = Button("Previous"){ println("previous") }
+    private val nextButton = Button("Next"){ println("next") }
+    private val doneButton = Button("Done"){ showMainMenu() }
+    contents ++= List(prevButton, nextButton, doneButton)
+  }
+
+  private val buttonPanels: List[Panel] =
+    List(mainPanel, newWheelPanel, selectionPanel, rollViewPanel)
 
   /* ========= Controlling which panels are displayed. ========= */
 
-  /** Display the newWheelPanel, but not the buttons. */
-  private def showNewWheelPanel(): Unit = { 
-    newWheelPanel.visible = true; buttonPanel.visible = false
-    selectionPanel.visible = false
-  }
+  /** Show panel `p`. */
+  private def showPanel(p: Panel) = 
+    for(p1 <- buttonPanels) p1.visible = (p1 == p)
+
+  // /** Display the newWheelPanel, but not the buttons. */
+  // private def showNewWheelPanel(): Unit = showPanel(newWheelPanel)
 
   /** Show the main menu of buttons. */
-  def showMainMenu(): Unit =  {
-    newWheelPanel.visible = false; buttonPanel.visible = true
-    selectionPanel.visible = false
-  }
+  def showMainMenu(): Unit =  showPanel(mainPanel)
 
   /** Show the selection panel. */
-  private def showSelectionPanel() = { 
-    newWheelPanel.visible = false; buttonPanel.visible = false
-    selectionPanel.visible = true
-  }
+  private def showSelectionPanel() = showPanel(selectionPanel)
 
   showMainMenu()
 
   /* Create contents. */
   contents = new BoxPanel(Orientation.Vertical) {
     border = Swing.EmptyBorder(10)
-    contents ++= List(drawingPanel, buttonPanel, newWheelPanel, selectionPanel)
+    contents ++= drawingPanel :: buttonPanels 
   }
+
+  /** Save the image. */
+  private def save() = {
+    val bImg = new BufferedImage(
+      drawingPanel.width, drawingPanel.height, BufferedImage.TYPE_INT_RGB)
+    val cg = bImg.createGraphics(); drawingPanel.paint(cg)
+    try{ ImageIO.write(bImg, "JPEG", new File("./output_image.jpg")) } 
+    catch { case e: IOException => e.printStackTrace() }
+  }
+// IMPROVE: prompt for name. 
 
   /* ========= Public operations ========= */
 
@@ -90,8 +113,7 @@ class SpirographMainFrame(model: ModelFacadeForView, controller: Controller)
   /** React to piece `p` being moved.  Give information about it in the
     * selection panel, and redraw main panel. */
   def movePiece(p: Piece) = { 
-    showSelectionPanel(); selectionPanel.update(p); 
-    drawingPanel.stopRolling(); drawingPanel.repaint()
+    showSelectionPanel(); selectionPanel.update(p); drawingPanel.repaint()
   }
 
   def repaintDrawingPanel() = drawingPanel.repaint()

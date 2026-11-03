@@ -2,6 +2,7 @@ package spirograph
 
 import scala.swing._
 import java.awt.{Color,Font}
+import ViewState._
 
 trait MainFrameT{
   def showMainMenu(): Unit
@@ -10,11 +11,8 @@ trait MainFrameT{
 /** Panel to show the currently selected piece.  The panel also allows the
   * addition of pens, or to roll the current piece. */
 class SelectionPanel(model: ModelFacadeForView, controller: Controller,
-  mainFrame: MainFrameT, drawingPanel: DrawingPanel)
+  mainFrame: MainFrameT, state: ViewState, drawingPanel: DrawingPanel)
     extends FlowPanel{
-  // Possible states
-  val Normal = 0; val Rolling = 1; val AddingPen = 2; val DeletingPen = 3
-  var state = 0
 
 //  preferredSize = new Dimension(420,120)
 // IMPROVE: link to colourChooser  
@@ -31,7 +29,8 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
   private val rollOneButton = Button("Roll one step"){ controller.rollOne() }
   private val deleteButton = Button("Delete"){ controller.deletePiece() }
   private val doneButton = Button("Done"){
-    if(state == AddingPen || state == DeletingPen) update(model.getCurrentPiece) 
+    val st = state.get
+    if(st == AddingPen || st == DeletingPen) update(model.getCurrentPiece) 
     else mainFrame.showMainMenu()
   }
   private val stopButton = Button("Stop"){ controller.stopRoll() }
@@ -103,39 +102,30 @@ class SelectionPanel(model: ModelFacadeForView, controller: Controller,
 
   /** Update this panel based on `p` being selected. */
   def update(p: Piece): Unit = {
-    state = Normal; label.text = p.report 
-    drawingPanel.addingPen = false; drawingPanel.deletingPen = false
+    state.set(Normal); label.text = p.report 
     colourShower.visible = false; colourChooser.visible = false
     var toShow = List(doneButton, deleteButton, addPenButton, deletePenButton,
       gridModeCheckBox, snapCheckBox)
     if(p.isCoupled) toShow ++= List(rollButton, rollOneButton)
     showButtons(toShow)
-    // if(p.isCoupled) showButtons(
-    //   doneButton, deleteButton, addPenButton, deletePenButton, 
-    //   rollButton, rollOneButton,
-    //   gridModeCheckBox, snapCheckBox)
-    // else showButtons(doneButton, deleteButton, addPenButton, deletePenButton,
-    //   gridModeCheckBox, snapCheckBox)
   }
 
   /** Start the current piece rolling. */
   private def startRolling(): Unit = {
-    state = Rolling; showButtons(stopButton, cancelButton)
-    drawingPanel.startRolling(); controller.roll()
+    state.set(Rolling); showButtons(stopButton, cancelButton)
+    controller.roll()
   }
 
   /** Switch to mode for adding pen. */
   private def addPenMode(): Unit = {
-    state = AddingPen; label.text = "Click to add pen"
+    state.set(AddingPen); label.text = "Click to add pen"
     showButtons(doneButton, gridModeCheckBox)
     colourShower.visible = true; colourChooser.visible = true
-    drawingPanel.addingPen = true
   }
 
   private def deletePenMode() = {
-    state = DeletingPen; label.text = "Click pen to delete"
+    state.set(DeletingPen); label.text = "Click pen to delete"
     showButtons(doneButton, gridModeCheckBox)
-    drawingPanel.deletingPen = true
   }
 }
 

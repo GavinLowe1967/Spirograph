@@ -4,9 +4,25 @@ import scala.swing._
 import swing.event._
 import java.awt.{Color,Font,Graphics2D, Point, geom}
 import DrawingPanel._
+import ViewState._
+
+/** Object that encapsulates the state of the view. */
+class ViewState{
+  var state = ViewState.Normal
+
+  def get = state
+  def set(s: Int) = state = s
+}
+
+object ViewState{
+  val Normal = 0; val Rolling = 1; val AddingPen = 2; val DeletingPen = 3
+}
+
+// =======================================================
 
 /** The main panel for drawing. */
-class DrawingPanel(model: ModelFacadeForView, controller: Controller) 
+class DrawingPanel(
+  model: ModelFacadeForView, controller: Controller, state: ViewState)
     extends Panel{
 
   // ========= Coordinate conversion
@@ -101,23 +117,10 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
 
   // ===== Reactions
 
-  /** Is this currently rolling? */
-  private var rolling = false
-
-  def startRolling() = rolling = true
-
-  def stopRolling() = rolling = false
-
-  /** Is a pen being added?  Set by SelectionPanel. */
-  var addingPen = false
-
-  /** Is a pen being deleted?  Set by SelectionPanel. */
-  var deletingPen = false
-
   /** Current pen colour.  Set by SelectionPanel. */
   var penColour = Color.red
 
-  /** Is the "snap to grid" mode set? */
+  /** Is the "snap to grid" mode set?  Set by SelectionPanel. */
   var snapToGrid = false
 
   /** Model coordinates for `e`, rounded to the grid size if appropriate. */
@@ -127,18 +130,20 @@ class DrawingPanel(model: ModelFacadeForView, controller: Controller)
   listenTo(mouse.clicks, mouse.moves)
 
   reactions += {
-    case e: MousePressed if !rolling && !addingPen => // Select piece
-      val v = getCoords(e)
-      if(deletingPen) controller.deletePen(v)
-      else controller.selectPieceAt(v)
+    case e: MousePressed if state.get == Normal =>      // Select piece
+      val v = getCoords(e); controller.selectPieceAt(v)
 
-    case e: MouseDragged if !rolling  && !addingPen && !deletingPen => 
-      // Move piece
+    case e: MousePressed if state.get == DeletingPen =>  // Delete pen
+      val v = getCoords(e); controller.deletePen(v)
+
+    case e: MouseDragged if state.get == Normal =>       // Move piece
       val v = maybeToGrid(e); controller.moveCurrentPiece(v)
 
-    case e: MouseReleased if !rolling && !deletingPen => // Drop piece
-      if(addingPen){ val v = getCoords(e); controller.addPen(v, penColour) }
-      else{ val v = maybeToGrid(e); controller.moveCurrentPiece(v) }
+    case e: MouseReleased if state.get == Normal => // Drop piece
+      val v = maybeToGrid(e); controller.moveCurrentPiece(v) 
+
+    case e: MouseReleased if state.get == AddingPen => // Drop piece
+      val v = getCoords(e); controller.addPen(v, penColour) 
   }
 }
 

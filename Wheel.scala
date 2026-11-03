@@ -105,10 +105,7 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
     position + Vector.fromPolar(r, theta+orientation)
 
   def addPen(v: Vector, c: Color) = {
-    val (r,theta) = getPolar(v)
-    // val offset = v-position; val r = offset.length
-    // val theta = Vector.normAngle(offset.theta-orientation)
-    pens ::= (r,theta,c)
+    val (r,theta) = getPolar(v); pens ::= (r,theta,c)
   }
 
   def getPens: List[(Vector,Color)] = 
@@ -121,7 +118,6 @@ class Wheel(val c: Int, protected var position: Vector) extends Piece{
     val toDelete =
       pens.filter{ case (r,theta,c1) => c1 == c && fromPolar(r, theta) == v }
     assert(toDelete.nonEmpty)
-    // println(toDelete)
     pens = pens.filter(p => !toDelete.contains(p))
   }
 
